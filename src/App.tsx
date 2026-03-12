@@ -224,20 +224,29 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     const uRef = doc(db, 'users', user.uid);
-    void setDoc(uRef, {
+    console.log('Writing user profile to Firestore for', user.uid, user.email);
+    setDoc(uRef, {
       displayName: user.displayName || null,
       email: user.email || null,
       photoURL: user.photoURL || null,
+      // store provider id so we can filter Google sign-ins
+      provider: (user.providerData && user.providerData[0] && user.providerData[0].providerId) || null,
       lastSeen: serverTimestamp()
-    }, { merge: true });
+    }, { merge: true })
+      .then(() => console.log('User profile saved successfully for', user.email))
+      .catch((err) => console.error('Error saving user profile:', err));
   }, [user]);
 
   // subscribe to `users` collection to show who signed-in
   useEffect(() => {
-    const qUsers = query(collection(db, 'users'), orderBy('lastSeen', 'desc'));
-    const unsub = onSnapshot(qUsers, (snap) => {
+    // Remove orderBy to avoid index requirement issues
+    const usersRef = collection(db, 'users');
+    const unsub = onSnapshot(usersRef, (snap) => {
       const list = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+      console.log('Users snapshot received', list);
       setOnlineUsers(list);
+    }, (error) => {
+      console.error('Error fetching users:', error);
     });
     return () => unsub();
   }, []);
@@ -410,7 +419,7 @@ export default function App() {
                             <div className="text-xs text-slate-400 truncate">{u.email}</div>
                           </div>
                         </div>
-                      ))}
+                        ))}
 
                       <div className="border-t p-2">
                         <button onClick={() => { if (typeof window !== 'undefined') window.open(`${window.location.origin}${window.location.pathname}?users=1`, '_blank'); }} className="w-full text-sm text-left px-2 py-2 hover:bg-slate-50 rounded">View all signed-in users</button>

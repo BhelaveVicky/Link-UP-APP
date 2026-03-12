@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
+    "import-users": "node scripts/importAuthToFirestore.js",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
