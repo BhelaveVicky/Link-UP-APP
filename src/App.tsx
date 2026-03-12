@@ -420,7 +420,7 @@ export default function App() {
       </aside>
 
       {/* Chat List */}
-      <section className="w-[340px] flex flex-col border-r border-slate-200 bg-white">
+      <section className="w-[450px] flex flex-col border-r border-slate-200 bg-white">
         <header className="p-4 flex items-center justify-between">
           <h1 className="text-xl font-bold">Chats</h1>
           <div className="flex gap-3 relative">
