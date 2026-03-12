@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   MessageSquare, 
   Film, 
@@ -26,6 +26,10 @@ import {
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+
+import { auth, provider, db } from './firebase';
+import { signInWithPopup, signOut, onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, setDoc, doc } from 'firebase/firestore';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -183,23 +187,126 @@ export default function App() {
   const [activeChat, setActiveChat] = useState<Chat>(MOCK_CHATS[4]); // ~ Miraculine
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const [showUsers, setShowUsers] = useState(false);
+
+  useEffect(() => {
+    const unsubAuth = onAuthStateChanged(auth, (u) => setUser(u));
+
+    const q = query(collection(db, 'messages'), orderBy('createdAt'));
+    const unsubMsgs = onSnapshot(q, (snap) => {
+      const docs = snap.docs.map((d) => {
+        const data: any = d.data();
+        return {
+          id: d.id,
+          sender: data.sender || (data.email ?? 'Unknown'),
+          avatar: data.avatar || 'https://i.pravatar.cc/150?u=guest',
+          text: data.text || '',
+          time: data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          isMe: user ? data.uid === user.uid : false,
+          quote: data.quote
+        } as Message;
+      });
+      setMessages(docs);
+    });
+
+    return () => {
+      unsubAuth();
+      unsubMsgs();
+    };
+  }, [db, user]);
+
+  // write/update the signed-in user's profile in `users` collection
+  useEffect(() => {
+    if (!user) return;
+    const uRef = doc(db, 'users', user.uid);
+    void setDoc(uRef, {
+      displayName: user.displayName || null,
+      email: user.email || null,
+      photoURL: user.photoURL || null,
+      lastSeen: serverTimestamp()
+    }, { merge: true });
+  }, [user]);
+
+  // subscribe to `users` collection to show who signed-in
+  useEffect(() => {
+    const qUsers = query(collection(db, 'users'), orderBy('lastSeen', 'desc'));
+    const unsub = onSnapshot(qUsers, (snap) => {
+      const list = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+      setOnlineUsers(list);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleSignIn = async () => {
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (err) {
+      console.error('Sign-in failed', err);
+    }
+  };
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) return;
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      sender: '~ RKhanna',
-      avatar: 'https://i.pravatar.cc/150?u=rk',
-      text: inputText,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isMe: true
+    const send = async () => {
+      if (!user) {
+        try {
+          await signInWithPopup(auth, provider);
+        } catch (err) {
+          console.error('signin error', err);
+          return;
+        }
+      }
+
+      const newMessage: Message = {
+        id: Date.now().toString(),
+        sender: user?.displayName || user?.email || '~ RKhanna',
+        avatar: user?.photoURL || 'https://i.pravatar.cc/150?u=rk',
+        text: inputText,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isMe: true
+      };
+
+      setMessages((prev) => [...prev, newMessage]);
+      setInputText('');
+
+      try {
+        await addDoc(collection(db, 'messages'), {
+          text: newMessage.text,
+          sender: newMessage.sender,
+          email: user?.email || null,
+          uid: user?.uid || null,
+          avatar: newMessage.avatar,
+          createdAt: serverTimestamp()
+        });
+      } catch (err) {
+        console.error('failed to save message', err);
+      }
     };
 
-    setMessages([...messages, newMessage]);
-    setInputText('');
+    void send();
   };
+
+  if (!user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-black text-white">
+        <div className="text-center">
+          <h1 className="text-6xl font-extrabold mb-12">LinkUp</h1>
+
+          <div className="mx-auto bg-[#070707] rounded-3xl p-12 w-[560px] text-center shadow-2xl">
+            <div className="mb-8 text-slate-400 tracking-widest">SECURE GATEWAY</div>
+            <button onClick={handleSignIn} className="inline-flex items-center gap-4 px-6 py-3 bg-white text-black rounded-full shadow hover:opacity-90">
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="google" className="w-6 h-6" />
+              <span className="font-medium">Sign in with Google</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full bg-[#f4f7f9] text-slate-900 font-sans overflow-hidden">
@@ -390,9 +497,27 @@ export default function App() {
                 placeholder="Type your message here..."
                 className="flex-1 bg-transparent py-0.5 focus:outline-none text-[15px]"
               />
-              <div className="flex items-center gap-4 text-slate-400">
-                <Sparkles size={20} className="cursor-pointer hover:text-[#00a3ff]" />
-                <Smile size={20} className="cursor-pointer hover:text-slate-600" />
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 text-slate-400">
+                  <Search size={20} className="cursor-pointer hover:text-slate-600" />
+                  <MoreHorizontal size={20} className="cursor-pointer hover:text-slate-600" />
+                </div>
+                <div>
+                  {user ? (
+                    <div className="flex items-center gap-3">
+                      <img src={user.photoURL || 'https://i.pravatar.cc/150?u=me'} alt="me" className="w-8 h-8 rounded-full object-cover" />
+                      <div className="text-right">
+                        <div className="text-sm font-semibold">{user.email}</div>
+                        {user.email === 'vickybhelave25@navgurukul.org' && (
+                          <div className="text-xs text-[#00a3ff]">Admin</div>
+                        )}
+                      </div>
+                      <button onClick={() => signOut(auth)} className="ml-3 text-sm text-slate-500 hover:text-slate-700">Sign out</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => signInWithPopup(auth, provider)} className="text-sm px-3 py-1 rounded bg-[#00a3ff] text-white">Sign in</button>
+                  )}
+                </div>
               </div>
             </div>
             <button className="w-11 h-11 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
@@ -404,3 +529,5 @@ export default function App() {
     </div>
   );
 }
+
+
