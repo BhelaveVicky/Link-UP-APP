@@ -768,19 +768,8 @@ export default function App() {
               </div>
             </div>
 
-            {/* Profile Section */}
-            <div className="p-6">
-              <div className="flex flex-col items-center">
-                <div className="w-20 h-20 rounded-full overflow-hidden mb-4">
-                  <img src={user?.photoURL || 'https://api.dicebear.com/7.x/initials/svg?seed=V&backgroundColor=00a3ff'} alt="Profile" className="w-full h-full object-cover" />
-                </div>
-                <h3 className="text-xl font-semibold text-slate-900 mb-1">{user?.displayName || user?.email || 'User'}</h3>
-                <p className="text-sm text-slate-500 mb-4">{user?.email || ''}</p>
-              </div>
-            </div>
-
-            {/* Search Bar */}
-            <div className="px-6 pb-4">
+            {/* Search Bar - Moved to Top */}
+            <div className="p-4 border-b border-slate-200">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                 <input
@@ -788,6 +777,17 @@ export default function App() {
                   placeholder="Search"
                   className="w-full pl-9 pr-4 py-2 bg-[#f0f2f5] rounded-lg text-sm focus:outline-none focus:bg-white focus:border focus:border-slate-300"
                 />
+              </div>
+            </div>
+
+            {/* Profile Section - Moved Below Search */}
+            <div className="p-6">
+              <div className="flex flex-col items-center">
+                <div className="w-20 h-20 rounded-full overflow-hidden mb-4">
+                  <img src={user?.photoURL || 'https://api.dicebear.com/7.x/initials/svg?seed=V&backgroundColor=00a3ff'} alt="Profile" className="w-full h-full object-cover" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-900 mb-1">{user?.displayName || user?.email || 'User'}</h3>
+                <p className="text-sm text-slate-500 mb-4">{user?.email || ''}</p>
               </div>
             </div>
 
