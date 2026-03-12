@@ -701,19 +701,8 @@ export default function App() {
               <div className="px-4 pb-2">
                 <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Recent chats</h3>
                 <div className="space-y-1">
-                  {/* Self chat */}
-                  <div className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
-                      V2
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-slate-900">Vicky 2</div>
-                      <div className="text-sm text-slate-500">Message yourself</div>
-                    </div>
-                  </div>
-                  
-                  {/* Online Users */}
-                  {filteredUsers.slice(0, 5).map((u) => (
+                  {/* Online Users - Only Google Sign-ins */}
+                  {filteredUsers.filter(u => u.provider === 'google.com').slice(0, 5).map((u) => (
                     <div 
                       key={u.id} 
                       className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors"
