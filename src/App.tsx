@@ -750,7 +750,7 @@ export default function App() {
           </div>
 
           {/* Profile Interface Panel - Main Content */}
-          <div className="w-[490px] bg-white flex flex-col">
+          <div className="w-[450px] bg-white flex flex-col">
             {/* Header */}
             <div className="p-4 flex items-center justify-between border-b border-slate-200">
               <div className="flex items-center gap-3">
@@ -792,68 +792,75 @@ export default function App() {
             </div>
 
             {/* Settings Options */}
-            <div className="flex-1 overflow-hidden">
-              <div className="px-6 py-2 h-full">
-                <button className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg">
-                  <div className="w-8 h-8 flex items-center justify-center text-slate-600">
+            <div className="flex-1 overflow-y-auto">
+              <div className="px-6 py-2">
+                <button className="w-full flex items-center gap-3 py-4 hover:bg-slate-50 transition-colors rounded-lg">
+                  <div className="w-8 h-8 flex items-center justify-center text-slate-600 flex-shrink-0">
                     <User size={20} />
                   </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-slate-900 font-medium">Profile</span>
+                  <div className="flex-1 text-left min-w-0">
+                    <span className="text-slate-900 font-medium block">Profile</span>
+                    <p className="text-sm text-slate-500 mt-0.5">Name, profile photo, username</p>
                   </div>
                 </button>
                 
-                <button className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg">
-                  <div className="w-8 h-8 flex items-center justify-center text-slate-600">
+                <button className="w-full flex items-center gap-3 py-4 hover:bg-slate-50 transition-colors rounded-lg">
+                  <div className="w-8 h-8 flex items-center justify-center text-slate-600 flex-shrink-0">
                     <Key size={20} />
                   </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-slate-900 font-medium">Account</span>
+                  <div className="flex-1 text-left min-w-0">
+                    <span className="text-slate-900 font-medium block">Account</span>
+                    <p className="text-sm text-slate-500 mt-0.5">Security notifications, account info</p>
                   </div>
                 </button>
                 
-                <button className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg">
-                  <div className="w-8 h-8 flex items-center justify-center text-slate-600">
+                <button className="w-full flex items-center gap-3 py-4 hover:bg-slate-50 transition-colors rounded-lg">
+                  <div className="w-8 h-8 flex items-center justify-center text-slate-600 flex-shrink-0">
                     <Lock size={20} />
                   </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-slate-900 font-medium">Privacy</span>
+                  <div className="flex-1 text-left min-w-0">
+                    <span className="text-slate-900 font-medium block">Privacy</span>
+                    <p className="text-sm text-slate-500 mt-0.5">Block contacts, disappearing messages</p>
                   </div>
                 </button>
                 
-                <button className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg">
-                  <div className="w-8 h-8 flex items-center justify-center text-slate-600">
+                <button className="w-full flex items-center gap-3 py-4 hover:bg-slate-50 transition-colors rounded-lg">
+                  <div className="w-8 h-8 flex items-center justify-center text-slate-600 flex-shrink-0">
                     <MessageSquare size={20} />
                   </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-slate-900 font-medium">Chats</span>
+                  <div className="flex-1 text-left min-w-0">
+                    <span className="text-slate-900 font-medium block">Chats</span>
+                    <p className="text-sm text-slate-500 mt-0.5">Theme, wallpapers, chat history</p>
                   </div>
                 </button>
                 
-                <button className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg">
-                  <div className="w-8 h-8 flex items-center justify-center text-slate-600">
+                <button className="w-full flex items-center gap-3 py-4 hover:bg-slate-50 transition-colors rounded-lg bg-slate-50">
+                  <div className="w-8 h-8 flex items-center justify-center text-slate-600 flex-shrink-0">
                     <Bell size={20} />
                   </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-slate-900 font-medium">Notifications</span>
+                  <div className="flex-1 text-left min-w-0">
+                    <span className="text-slate-900 font-medium block">Notifications</span>
+                    <p className="text-sm text-slate-500 mt-0.5">Message, group & call tones</p>
                   </div>
                 </button>
                 
-                <button className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg">
-                  <div className="w-8 h-8 flex items-center justify-center text-slate-600">
+                <button className="w-full flex items-center gap-3 py-4 hover:bg-slate-50 transition-colors rounded-lg">
+                  <div className="w-8 h-8 flex items-center justify-center text-slate-600 flex-shrink-0">
                     <Keyboard size={20} />
                   </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-slate-900 font-medium">Keyboard shortcuts</span>
+                  <div className="flex-1 text-left min-w-0">
+                    <span className="text-slate-900 font-medium block">Keyboard shortcuts</span>
+                    <p className="text-sm text-slate-500 mt-0.5">Quick actions from keyboard</p>
                   </div>
                 </button>
                 
-                <button className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg">
-                  <div className="w-8 h-8 flex items-center justify-center text-slate-600">
+                <button className="w-full flex items-center gap-3 py-4 hover:bg-slate-50 transition-colors rounded-lg">
+                  <div className="w-8 h-8 flex items-center justify-center text-slate-600 flex-shrink-0">
                     <HelpCircle size={20} />
                   </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-slate-900 font-medium">Help and feedback</span>
+                  <div className="flex-1 text-left min-w-0">
+                    <span className="text-slate-900 font-medium block">Help and feedback</span>
+                    <p className="text-sm text-slate-500 mt-0.5">FAQs, contact us, privacy policy</p>
                   </div>
                 </button>
                 
@@ -862,13 +869,14 @@ export default function App() {
                     signOut(auth);
                     setShowProfileInterface(false);
                   }}
-                  className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg"
+                  className="w-full flex items-center gap-3 py-4 hover:bg-slate-50 transition-colors rounded-lg"
                 >
-                  <div className="w-8 h-8 flex items-center justify-center text-red-600">
+                  <div className="w-8 h-8 flex items-center justify-center text-red-600 flex-shrink-0">
                     <LogOut size={20} />
                   </div>
-                  <div className="flex-1 text-left">
-                    <span className="text-red-600 font-medium">Log out</span>
+                  <div className="flex-1 text-left min-w-0">
+                    <span className="text-red-600 font-medium block">Log out</span>
+                    <p className="text-sm text-red-400 mt-0.5">Sign out of your account</p>
                   </div>
                 </button>
               </div>
