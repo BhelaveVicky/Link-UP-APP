@@ -15,9 +15,7 @@ import {
   Search, 
   Video,
   X, 
-  Paperclip, 
   Smile, 
-  Mic, 
   Menu,
   ChevronDown,
   Sparkles,
@@ -186,10 +184,10 @@ const INITIAL_MESSAGES: Message[] = [
 export default function App() {
   const [activeChat, setActiveChat] = useState<Chat>(MOCK_CHATS[4]); // ~ Miraculine
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputText, setInputText] = useState('');
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [showUsers, setShowUsers] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (u) => setUser(u));
@@ -247,48 +245,7 @@ export default function App() {
     }
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputText.trim()) return;
-
-    const send = async () => {
-      if (!user) {
-        try {
-          await signInWithPopup(auth, provider);
-        } catch (err) {
-          console.error('signin error', err);
-          return;
-        }
-      }
-
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        sender: user?.displayName || user?.email || '~ RKhanna',
-        avatar: user?.photoURL || 'https://i.pravatar.cc/150?u=rk',
-        text: inputText,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isMe: true
-      };
-
-      setMessages((prev) => [...prev, newMessage]);
-      setInputText('');
-
-      try {
-        await addDoc(collection(db, 'messages'), {
-          text: newMessage.text,
-          sender: newMessage.sender,
-          email: user?.email || null,
-          uid: user?.uid || null,
-          avatar: newMessage.avatar,
-          createdAt: serverTimestamp()
-        });
-      } catch (err) {
-        console.error('failed to save message', err);
-      }
-    };
-
-    void send();
-  };
+  // message sending/input removed per request
 
   if (!user) {
     return (
@@ -321,11 +278,31 @@ export default function App() {
           <Phone size={24} className="cursor-pointer hover:text-slate-600" />
           <Star size={24} className="cursor-pointer hover:text-slate-600" />
         </nav>
-        <div className="mt-auto flex flex-col gap-6 items-center pb-4">
-          <div className="w-9 h-9 rounded-full bg-[#00a3ff] flex items-center justify-center text-white cursor-pointer overflow-hidden">
-            <img src="https://api.dicebear.com/7.x/initials/svg?seed=V&backgroundColor=00a3ff" alt="V" className="w-full h-full object-cover" />
-          </div>
+        <div className="mt-auto flex flex-col gap-6 items-center pb-4 relative">
+          <button onClick={() => setShowProfile(s => !s)} className="w-9 h-9 rounded-full bg-[#00a3ff] flex items-center justify-center text-white cursor-pointer overflow-hidden">
+            <img src={user?.photoURL || 'https://api.dicebear.com/7.x/initials/svg?seed=V&backgroundColor=00a3ff'} alt="V" className="w-full h-full object-cover" />
+          </button>
           <Menu size={24} className="text-slate-400 cursor-pointer hover:text-slate-600" />
+
+          {showProfile && user && (
+            <div className="absolute left-12 bottom-20 w-64 bg-white border rounded-md shadow-lg z-50">
+              <div className="p-4 flex items-center gap-3 border-b">
+                <img src={user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || user.email} className="w-12 h-12 rounded-full object-cover" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold truncate">{user.displayName || user.email}</div>
+                  <div className="text-xs text-slate-500 truncate">{user.email}</div>
+                  {user.email === 'vickybhelave25@navgurukul.org' && <div className="text-xs text-[#00a3ff]">Admin</div>}
+                </div>
+              </div>
+              <div className="p-3">
+                <div className="text-sm text-slate-600 mb-2">Profile</div>
+                <div className="text-sm text-slate-700">UID: {user.uid}</div>
+                <div className="mt-3">
+                  <button onClick={() => { signOut(auth); setShowProfile(false); }} className="w-full px-3 py-2 bg-[#00a3ff] text-white rounded">Sign out</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -333,11 +310,36 @@ export default function App() {
       <section className="w-[340px] flex flex-col border-r border-slate-200 bg-white">
         <header className="p-4 flex items-center justify-between">
           <h1 className="text-xl font-bold">Chats</h1>
-          <div className="flex gap-3">
+          <div className="flex gap-3 relative">
             <MoreHorizontal size={20} className="text-slate-400 cursor-pointer" />
-            <div className="p-1 rounded-full bg-[#00a3ff] text-white cursor-pointer">
+            <button
+              onClick={() => setShowUsers(s => !s)}
+              aria-label="show users"
+              className="p-1 rounded-full bg-[#00a3ff] text-white cursor-pointer relative"
+            >
               <Plus size={18} />
-            </div>
+            </button>
+
+            {showUsers && (
+              <div className="absolute right-0 mt-10 w-64 bg-white border rounded-md shadow-lg z-50">
+                <div className="p-3 border-b text-sm font-semibold">Logged in users</div>
+                <div className="max-h-64 overflow-y-auto">
+                  {onlineUsers.length === 0 ? (
+                    <div className="p-3 text-sm text-slate-500">No users yet</div>
+                  ) : (
+                    onlineUsers.map((u) => (
+                      <div key={u.id} className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50">
+                        <img src={u.photoURL || `https://i.pravatar.cc/150?u=${u.id}`} alt={u.displayName || u.email} className="w-8 h-8 rounded-full object-cover" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">{u.displayName || u.email}</div>
+                          <div className="text-xs text-slate-400 truncate">{u.email}</div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </header>
 
@@ -483,48 +485,7 @@ export default function App() {
           )}
         </div>
 
-        {/* Input */}
-        <div className="p-4 bg-white border-t border-slate-200">
-          <div className="max-w-5xl mx-auto flex items-center gap-3">
-            <div className="flex-1 flex items-center gap-3 bg-white border border-slate-200 rounded-full px-4 py-2.5 shadow-sm">
-              <button className="text-slate-400 hover:text-slate-600">
-                <Paperclip size={20} />
-              </button>
-              <input 
-                type="text" 
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder="Type your message here..."
-                className="flex-1 bg-transparent py-0.5 focus:outline-none text-[15px]"
-              />
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3 text-slate-400">
-                  <Search size={20} className="cursor-pointer hover:text-slate-600" />
-                  <MoreHorizontal size={20} className="cursor-pointer hover:text-slate-600" />
-                </div>
-                <div>
-                  {user ? (
-                    <div className="flex items-center gap-3">
-                      <img src={user.photoURL || 'https://i.pravatar.cc/150?u=me'} alt="me" className="w-8 h-8 rounded-full object-cover" />
-                      <div className="text-right">
-                        <div className="text-sm font-semibold">{user.email}</div>
-                        {user.email === 'vickybhelave25@navgurukul.org' && (
-                          <div className="text-xs text-[#00a3ff]">Admin</div>
-                        )}
-                      </div>
-                      <button onClick={() => signOut(auth)} className="ml-3 text-sm text-slate-500 hover:text-slate-700">Sign out</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => signInWithPopup(auth, provider)} className="text-sm px-3 py-1 rounded bg-[#00a3ff] text-white">Sign in</button>
-                  )}
-                </div>
-              </div>
-            </div>
-            <button className="w-11 h-11 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
-              <Mic size={22} />
-            </button>
-          </div>
-        </div>
+        {/* Input removed per request */}
       </main>
     </div>
   );
