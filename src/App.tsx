@@ -403,28 +403,27 @@ export default function App() {
           <button onClick={() => { setShowProfileInterface(true); setShowProfile(false); }} className="w-9 h-9 rounded-full bg-[#00a3ff] flex items-center justify-center text-white cursor-pointer overflow-hidden">
             <img src={user?.photoURL || 'https://api.dicebear.com/7.x/initials/svg?seed=V&backgroundColor=00a3ff'} alt="V" className="w-full h-full object-cover" />
           </button>
-          <Menu size={24} className="text-slate-400 cursor-pointer hover:text-slate-600" />
+        </div>
 
-          {showProfile && user && (
-            <div className="absolute left-12 bottom-20 w-64 bg-white border rounded-md shadow-lg z-50">
-              <div className="p-4 flex items-center gap-3 border-b">
-                <img src={user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || user.email} className="w-12 h-12 rounded-full object-cover" />
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold truncate">{user.displayName || user.email}</div>
-                  <div className="text-xs text-slate-500 truncate">{user.email}</div>
-                  {user.email === 'vickybhelave25@navgurukul.org' && <div className="text-xs text-[#00a3ff]">Admin</div>}
-                </div>
-              </div>
-              <div className="p-3">
-                <div className="text-sm text-slate-600 mb-2">Profile</div>
-                <div className="text-sm text-slate-700">UID: {user.uid}</div>
-                <div className="mt-3">
-                  <button onClick={() => { signOut(auth); setShowProfile(false); }} className="w-full px-3 py-2 bg-[#00a3ff] text-white rounded">Sign out</button>
-                </div>
+        {showProfile && user && (
+          <div className="absolute left-12 bottom-20 w-64 bg-white border rounded-md shadow-lg z-50">
+            <div className="p-4 flex items-center gap-3 border-b">
+              <img src={user.photoURL || `https://i.pravatar.cc/150?u=${user.uid}`} alt={user.displayName || user.email} className="w-12 h-12 rounded-full object-cover" />
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold truncate">{user.displayName || user.email}</div>
+                <div className="text-xs text-slate-500 truncate">{user.email}</div>
+                {user.email === 'vickybhelave25@navgurukul.org' && <div className="text-xs text-[#00a3ff]">Admin</div>}
               </div>
             </div>
-          )}
-        </div>
+            <div className="p-3">
+              <div className="text-sm text-slate-600 mb-2">Profile</div>
+              <div className="text-sm text-slate-700">UID: {user.uid}</div>
+              <div className="mt-3">
+                <button onClick={() => { signOut(auth); setShowProfile(false); }} className="w-full px-3 py-2 bg-[#00a3ff] text-white rounded">Sign out</button>
+              </div>
+            </div>
+          </div>
+        )}
       </aside>
 
       {/* Chat List */}
