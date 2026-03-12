@@ -31,7 +31,9 @@ import {
   UserPlus,
   Send,
   Mic,
-  Paperclip
+  Paperclip,
+  Trash2,
+  UserX
 } from 'lucide-react';
 import { auth, db } from './firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -229,6 +231,8 @@ export default function App() {
   const [showAllUsersModal, setShowAllUsersModal] = useState(false);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [newChatSearch, setNewChatSearch] = useState('');
+  const [showChatDropdown, setShowChatDropdown] = useState(false);
+  const [isUserBlocked, setIsUserBlocked] = useState(false);
 
   function openUserChat(u: any) {
     const chat: Chat = {
@@ -244,7 +248,7 @@ export default function App() {
   }
 
   const sendMessage = () => {
-    if (inputMessage.trim() === '') return;
+    if (inputMessage.trim() === '' || isUserBlocked) return;
     
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -258,6 +262,33 @@ export default function App() {
     setMessages([...messages, newMessage]);
     setInputMessage('');
   };
+
+  const deleteChat = () => {
+    setMessages([]);
+    setShowChatDropdown(false);
+  };
+
+  const toggleBlockUser = () => {
+    setIsUserBlocked(!isUserBlocked);
+    setShowChatDropdown(false);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.chat-dropdown-container') && !target.closest('.chat-dropdown-menu')) {
+        setShowChatDropdown(false);
+      }
+    };
+
+    if (showChatDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showChatDropdown]);
 
   // read URL params to support opening a full users page or a user profile in a new tab
   const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
@@ -474,7 +505,7 @@ export default function App() {
       </aside>
 
       {/* Chat List */}
-      <section className="w-[450px] flex flex-col border-r border-slate-200 bg-white">
+      <section className="w-[450px] flex flex-col border-r bg-white border-slate-200">
         <header className="p-4 flex items-center justify-between">
           <h1 className="text-xl font-bold">Chats</h1>
           <div className="flex gap-3 relative">
@@ -623,13 +654,50 @@ export default function App() {
             <Search size={20} className="cursor-pointer hover:text-slate-600" />
             <Phone size={20} className="cursor-pointer hover:text-slate-600" />
             <Video size={20} className="cursor-pointer hover:text-slate-600" />
-            <MoreHorizontal size={20} className="cursor-pointer hover:text-slate-600" />
+            <div className="relative chat-dropdown-container">
+              <button 
+                onClick={() => setShowChatDropdown(!showChatDropdown)}
+                className="p-1 rounded-full hover:bg-slate-100 transition-colors"
+              >
+                <MoreHorizontal size={20} className="cursor-pointer hover:text-slate-600" />
+              </button>
+              
+              {showChatDropdown && (
+                <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border z-50 chat-dropdown-menu bg-white border-slate-200">
+                  <button
+                    onClick={deleteChat}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors text-slate-900"
+                  >
+                    <Trash2 size={16} className="text-red-500" />
+                    <span className="text-sm">Clear Chat</span>
+                  </button>
+                  
+                  <div className="border-t border-slate-200" />
+                  
+                  <button
+                    onClick={toggleBlockUser}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors text-slate-900"
+                  >
+                    <UserX size={16} className={isUserBlocked ? 'text-red-500' : 'text-orange-500'} />
+                    <span className="text-sm">{isUserBlocked ? 'Unblock User' : 'Block User'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
             <X size={20} className="cursor-pointer hover:text-slate-600" />
           </div>
         </header>
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 scrollbar-hide items-center justify-end pb-8">
+          {isUserBlocked && (
+            <div className="w-full max-w-2xl">
+              <div className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg text-[13px] border border-red-200">
+                <UserX size={14} />
+                <span>You have blocked this user. You cannot send or receive messages.</span>
+              </div>
+            </div>
+          )}
           {messages.length === 0 ? (
             <div className="flex flex-col gap-3 items-center w-full max-w-2xl">
               <div className="flex items-center gap-2 px-4 py-1.5 bg-[#e8f5e9] text-[#2e7d32] rounded-lg text-[13px] border border-[#c8e6c9]">
@@ -676,38 +744,44 @@ export default function App() {
 
         {/* Chat Input Section */}
         <div className="px-4 py-3 border-t border-slate-200 bg-white">
-          <div className="flex items-center gap-3">
-            {/* Emoji Button */}
-            <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-              <Smile size={24} className="text-slate-500" />
-            </button>
-            
-            {/* Attach Button */}
-            <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-              <Paperclip size={24} className="text-slate-500" />
-            </button>
-            
-            {/* Text Input */}
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                placeholder="Type a message..."
-                className="w-full px-4 py-2.5 bg-[#f0f2f5] rounded-[25px] text-sm focus:outline-none focus:bg-white focus:border-slate-300 border border-transparent transition-all"
-              />
+          {isUserBlocked ? (
+            <div className="flex items-center justify-center py-2">
+              <span className="text-red-500 text-sm">You cannot send messages to this user</span>
             </div>
-            
-            {/* Microphone Button - Dynamic */}
-            <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-              {inputMessage.trim() === '' ? (
-                <Mic size={24} className="text-slate-500" />
-              ) : (
-                <Send size={24} className="text-slate-500" onClick={sendMessage} />
-              )}
-            </button>
-          </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              {/* Emoji Button */}
+              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <Smile size={24} className="text-slate-500" />
+              </button>
+              
+              {/* Attach Button */}
+              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <Paperclip size={24} className="text-slate-500" />
+              </button>
+              
+              {/* Text Input */}
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                  placeholder="Type a message..."
+                  className="w-full px-4 py-2.5 bg-[#f0f2f5] rounded-[25px] text-sm focus:outline-none focus:bg-white focus:border-slate-300 border border-transparent transition-all"
+                />
+              </div>
+              
+              {/* Microphone Button - Dynamic */}
+              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                {inputMessage.trim() === '' ? (
+                  <Mic size={24} className="text-slate-500" />
+                ) : (
+                  <Send size={24} className="text-slate-500" onClick={sendMessage} />
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </main>
       {showNewChatModal && (
