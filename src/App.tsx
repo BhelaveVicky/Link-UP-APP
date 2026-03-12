@@ -20,7 +20,14 @@ import {
   ChevronDown,
   Sparkles,
   ShieldCheck,
-  CheckCheck
+  CheckCheck,
+  User,
+  Key,
+  Lock,
+  Bell,
+  Keyboard,
+  HelpCircle,
+  LogOut
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -192,6 +199,7 @@ export default function App() {
   const [showAllUsersModal, setShowAllUsersModal] = useState(false);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [newChatSearch, setNewChatSearch] = useState('');
+  const [showProfileInterface, setShowProfileInterface] = useState(false);
 
   function openUserChat(u: any) {
     const chat: Chat = {
@@ -392,7 +400,7 @@ export default function App() {
           <Star size={24} className="cursor-pointer hover:text-slate-600" />
         </nav>
         <div className="mt-auto flex flex-col gap-6 items-center pb-4 relative">
-          <button onClick={() => setShowProfile(s => !s)} className="w-9 h-9 rounded-full bg-[#00a3ff] flex items-center justify-center text-white cursor-pointer overflow-hidden">
+          <button onClick={() => { setShowProfileInterface(true); setShowProfile(false); }} className="w-9 h-9 rounded-full bg-[#00a3ff] flex items-center justify-center text-white cursor-pointer overflow-hidden">
             <img src={user?.photoURL || 'https://api.dicebear.com/7.x/initials/svg?seed=V&backgroundColor=00a3ff'} alt="V" className="w-full h-full object-cover" />
           </button>
           <Menu size={24} className="text-slate-400 cursor-pointer hover:text-slate-600" />
@@ -625,7 +633,7 @@ export default function App() {
       {showNewChatModal && (
         <div className="fixed inset-0 z-50 flex">
           {/* New Chat Panel - Left Side */}
-          <div className="w-[400px] bg-white flex flex-col">
+          <div className="w-[506px] bg-white flex flex-col">
             {/* Header */}
             <div className="p-4 flex items-center justify-between border-b border-slate-200">
               <div className="flex items-center gap-3">
@@ -723,6 +731,138 @@ export default function App() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* No backdrop needed - just dim the main content */}
+        </div>
+      )}
+      
+      {showProfileInterface && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Profile Interface Panel - Left Side */}
+          <div className="w-[506px] bg-white flex flex-col">
+            {/* Header */}
+            <div className="p-4 flex items-center justify-between border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setShowProfileInterface(false)} className="p-1 hover:bg-slate-100 rounded">
+                  <X size={20} className="text-slate-700" />
+                </button>
+                <h2 className="text-lg font-semibold text-slate-900">Settings</h2>
+              </div>
+              <div className="p-2 hover:bg-slate-100 rounded cursor-pointer">
+                <div className="w-5 h-5 flex flex-col gap-0.5">
+                  <div className="w-full h-0.5 bg-slate-600"></div>
+                  <div className="w-full h-0.5 bg-slate-600"></div>
+                  <div className="w-full h-0.5 bg-slate-600"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Profile Section */}
+            <div className="p-6">
+              <div className="flex flex-col items-center">
+                <div className="w-20 h-20 rounded-full overflow-hidden mb-4">
+                  <img src={user?.photoURL || 'https://api.dicebear.com/7.x/initials/svg?seed=V&backgroundColor=00a3ff'} alt="Profile" className="w-full h-full object-cover" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-900 mb-1">{user?.displayName || user?.email || 'User'}</h3>
+                <p className="text-sm text-slate-500 mb-4">{user?.email || ''}</p>
+              </div>
+            </div>
+
+            {/* Search Bar */}
+            <div className="px-6 pb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input
+                  type="text"
+                  placeholder="Search"
+                  className="w-full pl-9 pr-4 py-2 bg-[#f0f2f5] rounded-lg text-sm focus:outline-none focus:bg-white focus:border focus:border-slate-300"
+                />
+              </div>
+            </div>
+
+            {/* Settings Options */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="px-6 py-2">
+                <button className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg">
+                  <div className="w-8 h-8 flex items-center justify-center text-slate-600">
+                    <User size={20} />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <span className="text-slate-900 font-medium">Profile</span>
+                  </div>
+                </button>
+                
+                <button className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg">
+                  <div className="w-8 h-8 flex items-center justify-center text-slate-600">
+                    <Key size={20} />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <span className="text-slate-900 font-medium">Account</span>
+                  </div>
+                </button>
+                
+                <button className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg">
+                  <div className="w-8 h-8 flex items-center justify-center text-slate-600">
+                    <Lock size={20} />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <span className="text-slate-900 font-medium">Privacy</span>
+                  </div>
+                </button>
+                
+                <button className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg">
+                  <div className="w-8 h-8 flex items-center justify-center text-slate-600">
+                    <MessageSquare size={20} />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <span className="text-slate-900 font-medium">Chats</span>
+                  </div>
+                </button>
+                
+                <button className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg">
+                  <div className="w-8 h-8 flex items-center justify-center text-slate-600">
+                    <Bell size={20} />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <span className="text-slate-900 font-medium">Notifications</span>
+                  </div>
+                </button>
+                
+                <button className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg">
+                  <div className="w-8 h-8 flex items-center justify-center text-slate-600">
+                    <Keyboard size={20} />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <span className="text-slate-900 font-medium">Keyboard shortcuts</span>
+                  </div>
+                </button>
+                
+                <button className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg">
+                  <div className="w-8 h-8 flex items-center justify-center text-slate-600">
+                    <HelpCircle size={20} />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <span className="text-slate-900 font-medium">Help and feedback</span>
+                  </div>
+                </button>
+                
+                <button 
+                  onClick={() => {
+                    signOut(auth);
+                    setShowProfileInterface(false);
+                  }}
+                  className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg"
+                >
+                  <div className="w-8 h-8 flex items-center justify-center text-red-600">
+                    <LogOut size={20} />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <span className="text-red-600 font-medium">Log out</span>
+                  </div>
+                </button>
               </div>
             </div>
           </div>
