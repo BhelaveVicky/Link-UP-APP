@@ -27,18 +27,41 @@ import {
   Bell,
   Keyboard,
   HelpCircle,
-  LogOut
+  LogOut,
+  UserPlus
 } from 'lucide-react';
+import { auth, db } from './firebase';
+import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
+import { 
+  collection, 
+  addDoc, 
+  query, 
+  orderBy, 
+  onSnapshot, 
+  serverTimestamp, 
+  setDoc, 
+  doc,
+  where,
+  getDocs
+} from 'firebase/firestore';
+
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-
-import { auth, provider, db } from './firebase';
-import { signInWithPopup, signOut, onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, setDoc, doc } from 'firebase/firestore';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+// Custom scrollbar styles
+const scrollbarHideStyles = `
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+`;
 
 interface Chat {
   id: string;
@@ -191,7 +214,7 @@ const INITIAL_MESSAGES: Message[] = [
 export default function App() {
   const [activeChat, setActiveChat] = useState<Chat>(MOCK_CHATS[4]); // ~ Miraculine
   const [messages, setMessages] = useState<Message[]>([]);
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [showUsers, setShowUsers] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -255,7 +278,7 @@ export default function App() {
       email: user.email || null,
       photoURL: user.photoURL || null,
       // store provider id so we can filter Google sign-ins
-      provider: (user.providerData && user.providerData[0] && user.providerData[0].providerId) || null,
+      provider: (user.providerData && user.providerData[0] && user.providerData[0].providerId) || 'unknown',
       lastSeen: serverTimestamp()
     }, { merge: true })
       .then(() => console.log('User profile saved successfully for', user.email))
@@ -387,7 +410,9 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-[#f4f7f9] text-slate-900 font-sans overflow-hidden">
+    <>
+      <style>{scrollbarHideStyles}</style>
+      <div className="flex h-screen w-full bg-[#f4f7f9] text-slate-900 font-sans overflow-hidden">
       {/* Sidebar */}
       <aside className="w-[72px] flex flex-col items-center py-4 border-r border-slate-200 bg-white relative z-[60]">
         <div className="mb-6 p-2.5 rounded-xl bg-[#00a3ff] text-white cursor-pointer shadow-sm">
@@ -451,7 +476,7 @@ export default function App() {
                     className="w-full px-2 py-1 border rounded text-sm focus:outline-none"
                   />
                 </div>
-                <div className="max-h-64 overflow-y-auto">
+                <div className="max-h-64 overflow-y-auto scrollbar-hide">
                   {onlineUsers.length === 0 ? (
                     <div className="p-3 text-sm text-slate-500">No users yet</div>
                   ) : filteredUsers.length === 0 ? (
@@ -513,7 +538,7 @@ export default function App() {
           <Menu size={18} className="text-slate-400 cursor-pointer" />
         </div>
 
-        <div className="flex-1 overflow-y-auto no-scrollbar">
+        <div className="flex-1 overflow-y-auto scrollbar-hide">
           {MOCK_CHATS.map((chat) => (
             <div 
               key={chat.id}
@@ -582,7 +607,7 @@ export default function App() {
         </header>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 no-scrollbar items-center justify-end pb-8">
+        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 scrollbar-hide items-center justify-end pb-8">
           {messages.length === 0 ? (
             <div className="flex flex-col gap-3 items-center w-full max-w-2xl">
               <div className="flex items-center gap-2 px-4 py-1.5 bg-[#e8f5e9] text-[#2e7d32] rounded-lg text-[13px] border border-[#c8e6c9]">
@@ -704,7 +729,7 @@ export default function App() {
             </div>
 
             {/* Recent Chats */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto scrollbar-hide">
               <div className="px-4 pb-2">
                 <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Recent chats</h3>
                 <div className="space-y-1">
@@ -780,7 +805,7 @@ export default function App() {
             </div>
 
             {/* Settings Options */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto scrollbar-hide">
               <div className="px-6 py-2">
                 {/* Profile Section - Now Scrollable */}
                 <div className="flex flex-col items-center mb-6">
@@ -924,6 +949,7 @@ export default function App() {
         </div>
       )}
     </div>
+    </>
   );
 }
 
