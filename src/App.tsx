@@ -389,7 +389,7 @@ export default function App() {
   return (
     <div className="flex h-screen w-full bg-[#f4f7f9] text-slate-900 font-sans overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-[72px] flex flex-col items-center py-4 border-r border-slate-200 bg-white">
+      <aside className="w-[72px] flex flex-col items-center py-4 border-r border-slate-200 bg-white relative z-[60]">
         <div className="mb-6 p-2.5 rounded-xl bg-[#00a3ff] text-white cursor-pointer shadow-sm">
           <MessageSquare size={24} />
         </div>
@@ -633,7 +633,7 @@ export default function App() {
       {showNewChatModal && (
         <div className="fixed inset-0 z-50 flex">
           {/* New Chat Panel - Left Side */}
-          <div className="w-[506px] bg-white flex flex-col">
+          <div className="w-[450px] bg-white flex flex-col z-[70] h-full absolute left-16 top-0">
             {/* Header */}
             <div className="p-4 flex items-center justify-between border-b border-slate-200">
               <div className="flex items-center gap-3">
@@ -741,8 +741,16 @@ export default function App() {
       
       {showProfileInterface && (
         <div className="fixed inset-0 z-50 flex">
-          {/* Profile Interface Panel - Left Side */}
-          <div className="w-[506px] bg-white flex flex-col">
+          {/* Left Sidebar */}
+          <div className="w-16 bg-white border-r border-slate-200 flex flex-col items-center py-4 z-[70]">
+            {/* Profile Icon in Sidebar */}
+            <div className="w-10 h-10 rounded-full overflow-hidden mb-4">
+              <img src={user?.photoURL || 'https://api.dicebear.com/7.x/initials/svg?seed=V&backgroundColor=00a3ff'} alt="Profile" className="w-full h-full object-cover" />
+            </div>
+          </div>
+
+          {/* Profile Interface Panel - Main Content */}
+          <div className="w-[490px] bg-white flex flex-col">
             {/* Header */}
             <div className="p-4 flex items-center justify-between border-b border-slate-200">
               <div className="flex items-center gap-3">
@@ -784,8 +792,8 @@ export default function App() {
             </div>
 
             {/* Settings Options */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="px-6 py-2">
+            <div className="flex-1 overflow-hidden">
+              <div className="px-6 py-2 h-full">
                 <button className="w-full flex items-center gap-4 py-3 hover:bg-slate-50 transition-colors rounded-lg">
                   <div className="w-8 h-8 flex items-center justify-center text-slate-600">
                     <User size={20} />
