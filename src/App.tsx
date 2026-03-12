@@ -13,6 +13,7 @@ import {
   MoreHorizontal, 
   Plus, 
   Search, 
+  Video,
   X, 
   Paperclip, 
   Smile, 
@@ -20,7 +21,8 @@ import {
   Menu,
   ChevronDown,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  CheckCheck
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -38,6 +40,8 @@ interface Chat {
   isGroup?: boolean;
   participants?: string;
   isVerified?: boolean;
+  isOfficial?: boolean;
+  hasCheck?: boolean;
 }
 
 const MOCK_CHATS: Chat[] = [
@@ -56,7 +60,8 @@ const MOCK_CHATS: Chat[] = [
     avatar: 'https://i.pravatar.cc/150?u=rk',
     lastMessage: 'You: hello mam',
     time: 'Yesterday',
-    isVerified: true
+    isVerified: true,
+    hasCheck: true
   },
   {
     id: '3',
@@ -64,7 +69,7 @@ const MOCK_CHATS: Chat[] = [
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=AR&backgroundColor=f9d71c',
     lastMessage: 'Your Arattai sign-in code: 5861909.',
     time: 'Yesterday',
-    isVerified: true
+    isOfficial: true
   },
   {
     id: '4',
@@ -175,8 +180,8 @@ const INITIAL_MESSAGES: Message[] = [
 ];
 
 export default function App() {
-  const [activeChat, setActiveChat] = useState<Chat>(MOCK_CHATS[0]);
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const [activeChat, setActiveChat] = useState<Chat>(MOCK_CHATS[4]); // ~ Miraculine
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -209,16 +214,16 @@ export default function App() {
           <Phone size={24} className="cursor-pointer hover:text-slate-600" />
           <Star size={24} className="cursor-pointer hover:text-slate-600" />
         </nav>
-        <div className="mt-auto flex flex-col gap-6 items-center">
-          <div className="w-9 h-9 rounded-full bg-[#00a3ff] flex items-center justify-center text-white text-xs font-bold cursor-pointer">
-            V
+        <div className="mt-auto flex flex-col gap-6 items-center pb-4">
+          <div className="w-9 h-9 rounded-full bg-[#00a3ff] flex items-center justify-center text-white cursor-pointer overflow-hidden">
+            <img src="https://api.dicebear.com/7.x/initials/svg?seed=V&backgroundColor=00a3ff" alt="V" className="w-full h-full object-cover" />
           </div>
           <Menu size={24} className="text-slate-400 cursor-pointer hover:text-slate-600" />
         </div>
       </aside>
 
       {/* Chat List */}
-      <section className="w-[420px] min-w-[320px] flex flex-col border-r border-slate-200 bg-white">
+      <section className="w-[340px] flex flex-col border-r border-slate-200 bg-white">
         <header className="p-4 flex items-center justify-between">
           <h1 className="text-xl font-bold">Chats</h1>
           <div className="flex gap-3">
@@ -278,12 +283,18 @@ export default function App() {
                   <div className="flex items-center gap-1">
                     <span className="font-semibold text-[15px] truncate">{chat.name}</span>
                     {chat.isVerified && (
-                      <ShieldCheck size={14} className="text-[#00a3ff]" />
+                      <ShieldCheck size={14} className="text-[#4caf50]" />
+                    )}
+                    {chat.isOfficial && (
+                      <ShieldCheck size={14} className="text-[#ff9800]" />
                     )}
                   </div>
                   <span className="text-[11px] text-slate-400">{chat.time}</span>
                 </div>
-                <p className="text-[13px] text-slate-500 truncate italic">{chat.lastMessage}</p>
+                <div className="flex items-center gap-1">
+                  {chat.hasCheck && <CheckCheck size={14} className="text-slate-400" />}
+                  <p className="text-[13px] text-slate-500 truncate">{chat.lastMessage}</p>
+                </div>
               </div>
             </div>
           ))}
@@ -302,83 +313,91 @@ export default function App() {
               referrerPolicy="no-referrer"
             />
             <div>
-              <h2 className="font-bold text-[15px] leading-tight">{activeChat.name}</h2>
-              <span className="text-[12px] text-slate-500">{activeChat.participants || 'Online'}</span>
+              <div className="flex items-center gap-1">
+                <h2 className="font-bold text-[15px] leading-tight">{activeChat.name}</h2>
+                {activeChat.isVerified && <ShieldCheck size={14} className="text-[#4caf50]" />}
+                {activeChat.isOfficial && <ShieldCheck size={14} className="text-[#ff9800]" />}
+              </div>
+              <span className="text-[12px] text-slate-500">{activeChat.participants || ''}</span>
             </div>
           </div>
           <div className="flex items-center gap-5 text-slate-400">
             <Search size={20} className="cursor-pointer hover:text-slate-600" />
+            <Phone size={20} className="cursor-pointer hover:text-slate-600" />
+            <Video size={20} className="cursor-pointer hover:text-slate-600" />
             <MoreHorizontal size={20} className="cursor-pointer hover:text-slate-600" />
             <X size={20} className="cursor-pointer hover:text-slate-600" />
           </div>
         </header>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 no-scrollbar">
-          {messages.map((msg) => (
-            <div key={msg.id} className={cn("flex gap-2", msg.isMe ? "flex-row-reverse" : "flex-row")}>
-              {!msg.isMe && (
-                <img 
-                  src={msg.avatar} 
-                  alt={msg.sender} 
-                  className="w-8 h-8 rounded-full object-cover mt-1"
-                  referrerPolicy="no-referrer"
-                />
-              )}
-              <div className={cn("flex flex-col", msg.isMe ? "items-end" : "items-start")}>
-                {!msg.isMe && <span className="text-[12px] font-semibold text-slate-600 mb-1 ml-1">{msg.sender}</span>}
-                <div className={cn(
-                  "px-3 py-2 rounded-xl shadow-sm max-w-[700px]",
-                  msg.isMe ? "bg-[#00a3ff] text-white" : "bg-white text-slate-800"
-                )}>
-                  {msg.quote && (
-                    <div className="mb-2 p-2 bg-slate-50 rounded-lg border-l-4 border-[#00a3ff] text-[13px]">
-                      <div className="font-bold text-[#00a3ff] mb-0.5">{msg.quote.sender}</div>
-                      <div className="text-slate-600 truncate">{msg.quote.text}</div>
+        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 no-scrollbar items-center justify-end pb-8">
+          {messages.length === 0 ? (
+            <div className="flex flex-col gap-3 items-center w-full max-w-2xl">
+              <div className="flex items-center gap-2 px-4 py-1.5 bg-[#e8f5e9] text-[#2e7d32] rounded-lg text-[13px] border border-[#c8e6c9]">
+                <ShieldCheck size={14} />
+                <span>Messages and calls in this chat are now protected with end-to-end encryption.</span>
+              </div>
+              <div className="px-4 py-1.5 bg-white text-slate-500 rounded-lg text-[13px] border border-slate-100 shadow-sm">
+                Previous messages are currently unavailable as this device has been added recently.
+              </div>
+            </div>
+          ) : (
+            messages.map((msg) => (
+              <div key={msg.id} className={cn("flex gap-2 w-full", msg.isMe ? "flex-row-reverse" : "flex-row")}>
+                {!msg.isMe && (
+                  <img 
+                    src={msg.avatar} 
+                    alt={msg.sender} 
+                    className="w-8 h-8 rounded-full object-cover mt-1"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+                <div className={cn("flex flex-col", msg.isMe ? "items-end" : "items-start")}>
+                  {!msg.isMe && <span className="text-[12px] font-semibold text-slate-600 mb-1 ml-1">{msg.sender}</span>}
+                  <div className={cn(
+                    "px-3 py-2 rounded-xl shadow-sm max-w-[500px]",
+                    msg.isMe ? "bg-[#00a3ff] text-white" : "bg-white text-slate-800"
+                  )}>
+                    {msg.quote && (
+                      <div className="mb-2 p-2 bg-slate-50 rounded-lg border-l-4 border-[#00a3ff] text-[13px]">
+                        <div className="font-bold text-[#00a3ff] mb-0.5">{msg.quote.sender}</div>
+                        <div className="text-slate-600 truncate">{msg.quote.text}</div>
+                      </div>
+                    )}
+                    <p className="text-[14px] leading-relaxed">{msg.text}</p>
+                    <div className="flex justify-end mt-1">
+                      <span className={cn("text-[10px]", msg.isMe ? "text-sky-100" : "text-slate-400")}>{msg.time}</span>
                     </div>
-                  )}
-                  <p className="text-[14px] leading-relaxed">{msg.text}</p>
-                  <div className="flex justify-end mt-1">
-                    <span className={cn("text-[10px]", msg.isMe ? "text-sky-100" : "text-slate-400")}>{msg.time}</span>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-          
-          {/* Bottom Avatar in Screenshot */}
-          <div className="flex gap-2 mt-auto">
-            <img 
-              src="https://i.pravatar.cc/150?u=rk" 
-              alt="RKhanna" 
-              className="w-8 h-8 rounded-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-            <span className="text-[12px] font-semibold text-slate-600 mt-2">~ RKhanna</span>
-          </div>
+            ))
+          )}
         </div>
 
         {/* Input */}
         <div className="p-4 bg-white border-t border-slate-200">
-          <div className="max-w-5xl mx-auto flex items-center gap-3 bg-[#f0f2f5] rounded-full px-4 py-2 shadow-inner">
-            <button className="text-slate-400 hover:text-slate-600">
-              <Paperclip size={20} />
-            </button>
-            <div className="flex-1 flex items-center gap-2">
-              <Sparkles size={18} className="text-[#00a3ff]" />
+          <div className="max-w-5xl mx-auto flex items-center gap-3">
+            <div className="flex-1 flex items-center gap-3 bg-white border border-slate-200 rounded-full px-4 py-2.5 shadow-sm">
+              <button className="text-slate-400 hover:text-slate-600">
+                <Paperclip size={20} />
+              </button>
               <input 
                 type="text" 
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="Type your message here..."
-                className="flex-1 bg-transparent py-1.5 focus:outline-none text-[14px]"
+                className="flex-1 bg-transparent py-0.5 focus:outline-none text-[15px]"
               />
+              <div className="flex items-center gap-4 text-slate-400">
+                <Sparkles size={20} className="cursor-pointer hover:text-[#00a3ff]" />
+                <Smile size={20} className="cursor-pointer hover:text-slate-600" />
+              </div>
             </div>
-            <div className="flex items-center gap-3 text-slate-400">
-              <ChevronDown size={20} className="cursor-pointer" />
-              <Smile size={20} className="cursor-pointer" />
-              <Mic size={20} className="cursor-pointer" />
-            </div>
+            <button className="w-11 h-11 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
+              <Mic size={22} />
+            </button>
           </div>
         </div>
       </main>
