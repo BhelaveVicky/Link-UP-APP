@@ -188,6 +188,23 @@ export default function App() {
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [showUsers, setShowUsers] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [usersSearch, setUsersSearch] = useState('');
+  const [showAllUsersModal, setShowAllUsersModal] = useState(false);
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [newChatSearch, setNewChatSearch] = useState('');
+
+  function openUserChat(u: any) {
+    const chat: Chat = {
+      id: u.id,
+      name: u.displayName || u.email || 'Unknown',
+      avatar: u.photoURL || `https://i.pravatar.cc/150?u=${u.id}`,
+      lastMessage: '',
+      time: ''
+    };
+    setActiveChat(chat);
+    setShowUsers(false);
+    setShowAllUsersModal(false);
+  }
 
   // read URL params to support opening a full users page or a user profile in a new tab
   const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
@@ -252,6 +269,14 @@ export default function App() {
   }, []);
 
   // If the app was opened with ?users=1 or ?profile=<uid>, render a full-screen users/profile page
+  const filteredUsers = onlineUsers.filter(u => {
+    const q = usersSearch.trim().toLowerCase();
+    if (!q) return true;
+    const name = (u.displayName || '').toLowerCase();
+    const email = (u.email || '').toLowerCase();
+    return name.includes(q) || email.includes(q);
+  });
+
   if (showAllUsersPage) {
     return (
       <div className="flex h-screen w-full items-start justify-center bg-[#f4f7f9] text-slate-900 font-sans">
@@ -263,18 +288,28 @@ export default function App() {
             </div>
           </div>
           <div className="p-4">
+            <div className="mb-3">
+              <input
+                value={usersSearch}
+                onChange={(e) => setUsersSearch(e.target.value)}
+                placeholder="Search users"
+                className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none"
+              />
+            </div>
             {onlineUsers.length === 0 ? (
               <div className="text-sm text-slate-500">No users yet</div>
             ) : (
               <div className="grid grid-cols-1 gap-2">
-                {onlineUsers.map(u => (
-                  <div key={u.id} className="flex items-center gap-3 p-3 border rounded hover:bg-slate-50 cursor-pointer" onClick={() => { if (typeof window !== 'undefined') window.open(`${window.location.origin}${window.location.pathname}?profile=${u.id}`, '_blank'); }}>
-                    <img src={u.photoURL || `https://i.pravatar.cc/150?u=${u.id}`} alt={u.displayName || u.email} className="w-12 h-12 rounded-full object-cover" />
+                {filteredUsers.map(u => (
+                  <div key={u.id} className="flex items-center gap-3 p-3 border rounded hover:bg-slate-50 cursor-pointer" onClick={() => openUserChat(u)}>
+                    <div className="w-12 flex-shrink-0">
+                      <img src={u.photoURL || `https://i.pravatar.cc/150?u=${u.id}`} alt={u.displayName || u.email} className="w-12 h-12 rounded-full object-cover" />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">{u.displayName || u.email}</div>
                       <div className="text-xs text-slate-500 truncate">{u.email}</div>
                     </div>
-                    <div className="text-xs text-slate-400">{u.lastSeen ? new Date(u.lastSeen.seconds * 1000).toLocaleString() : '—'}</div>
+                    <div className="text-xs text-slate-400">{u.lastSeen ? (u.lastSeen.seconds ? new Date(u.lastSeen.seconds * 1000).toLocaleString() : String(u.lastSeen)) : '—'}</div>
                   </div>
                 ))}
               </div>
@@ -391,7 +426,7 @@ export default function App() {
           <div className="flex gap-3 relative">
             <MoreHorizontal size={20} className="text-slate-400 cursor-pointer" />
             <button
-              onClick={() => setShowUsers(s => !s)}
+              onClick={() => { setShowNewChatModal(true); setShowUsers(false); }}
               aria-label="show users"
               className="p-1 rounded-full bg-[#00a3ff] text-white cursor-pointer relative"
             >
@@ -401,28 +436,39 @@ export default function App() {
             {showUsers && (
               <div className="absolute right-0 mt-10 w-64 bg-white border rounded-md shadow-lg z-50">
                 <div className="p-3 border-b text-sm font-semibold">Logged in users</div>
+                <div className="px-3 py-2">
+                  <input
+                    value={usersSearch}
+                    onChange={(e) => setUsersSearch(e.target.value)}
+                    placeholder="Search users"
+                    className="w-full px-2 py-1 border rounded text-sm focus:outline-none"
+                  />
+                </div>
                 <div className="max-h-64 overflow-y-auto">
                   {onlineUsers.length === 0 ? (
                     <div className="p-3 text-sm text-slate-500">No users yet</div>
+                  ) : filteredUsers.length === 0 ? (
+                    <div className="p-3 text-sm text-slate-500">No matching users</div>
                   ) : (
                     <div>
-                      {onlineUsers.map((u) => (
-                        <div
-                          key={u.id}
-                          role="button"
-                          onClick={() => { if (typeof window !== 'undefined') window.open(`${window.location.origin}${window.location.pathname}?profile=${u.id}`, '_blank'); }}
-                          className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 cursor-pointer"
-                        >
-                          <img src={u.photoURL || `https://i.pravatar.cc/150?u=${u.id}`} alt={u.displayName || u.email} className="w-8 h-8 rounded-full object-cover" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium truncate">{u.displayName || u.email}</div>
-                            <div className="text-xs text-slate-400 truncate">{u.email}</div>
-                          </div>
+                      {/* Avatar grid similar to WhatsApp "new chat" */}
+                      <div className="px-3 py-2">
+                        <div className="flex gap-3 overflow-x-auto no-scrollbar py-1">
+                          {filteredUsers.map((u) => (
+                            <button
+                              key={u.id}
+                              onClick={() => openUserChat(u)}
+                              className="w-20 flex-none flex flex-col items-center gap-2 px-1 py-1 hover:bg-slate-50 rounded"
+                            >
+                              <img src={u.photoURL || `https://i.pravatar.cc/150?u=${u.id}`} alt={u.displayName || u.email} className="w-12 h-12 rounded-full object-cover" />
+                              <div className="text-xs text-center truncate w-full">{u.displayName || u.email}</div>
+                            </button>
+                          ))}
                         </div>
-                        ))}
+                      </div>
 
                       <div className="border-t p-2">
-                        <button onClick={() => { if (typeof window !== 'undefined') window.open(`${window.location.origin}${window.location.pathname}?users=1`, '_blank'); }} className="w-full text-sm text-left px-2 py-2 hover:bg-slate-50 rounded">View all signed-in users</button>
+                        <button onClick={() => setShowAllUsersModal(true)} className="w-full text-sm text-left px-2 py-2 hover:bg-slate-50 rounded">View all signed-in users</button>
                       </div>
                     </div>
                   )}
@@ -500,7 +546,7 @@ export default function App() {
       </section>
 
       {/* Main Chat Area */}
-      <main className="flex-1 flex flex-col bg-[#f0f2f5]">
+      <main className={`flex-1 flex flex-col bg-[#f0f2f5] ${showNewChatModal ? 'opacity-50 pointer-events-none' : ''}`}>
         {/* Header */}
         <header className="h-16 px-4 flex items-center justify-between bg-white border-b border-slate-200">
           <div className="flex items-center gap-3">
@@ -576,6 +622,166 @@ export default function App() {
 
         {/* Input removed per request */}
       </main>
+      {showNewChatModal && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* New Chat Panel - Left Side */}
+          <div className="w-[400px] bg-white flex flex-col">
+            {/* Header */}
+            <div className="p-4 flex items-center justify-between border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setShowNewChatModal(false)} className="p-1 hover:bg-slate-100 rounded">
+                  <X size={20} className="text-slate-700" />
+                </button>
+                <h2 className="text-lg font-semibold text-slate-900">New chat</h2>
+              </div>
+              <div className="p-2 hover:bg-slate-100 rounded cursor-pointer">
+                <div className="w-5 h-5 flex flex-col gap-0.5">
+                  <div className="w-full h-0.5 bg-slate-600"></div>
+                  <div className="w-full h-0.5 bg-slate-600"></div>
+                  <div className="w-full h-0.5 bg-slate-600"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Search Bar */}
+            <div className="p-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <input
+                  type="text"
+                  placeholder="Search name or number"
+                  value={newChatSearch}
+                  onChange={(e) => setNewChatSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-[#f0f2f5] rounded-lg text-sm focus:outline-none focus:bg-white focus:border focus:border-slate-300"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {/* Options */}
+            <div className="px-4 pb-4">
+              <div className="space-y-2">
+                <button className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
+                  <div className="w-10 h-10 bg-[#00a884] rounded-full flex items-center justify-center">
+                    <div className="w-6 h-6 flex items-center justify-center">
+                      <div className="w-4 h-4 bg-white rounded-full flex items-center justify-center">
+                        <Plus size={12} className="text-[#00a884]" />
+                      </div>
+                      <div className="w-3 h-3 bg-white rounded-full absolute -right-1 -bottom-1"></div>
+                    </div>
+                  </div>
+                  <span className="font-medium text-slate-900">New group</span>
+                </button>
+                
+                <button className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
+                  <div className="w-10 h-10 bg-[#00a884] rounded-full flex items-center justify-center">
+                    <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center">
+                      <div className="w-2.5 h-2.5 bg-slate-400 rounded-full"></div>
+                    </div>
+                    <Plus size={14} className="text-white absolute" />
+                  </div>
+                  <span className="font-medium text-slate-900">New contact</span>
+                </button>
+                
+                <button className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
+                  <div className="w-10 h-10 bg-[#00a884] rounded-full flex items-center justify-center">
+                    <div className="flex gap-0.5">
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                  </div>
+                  <span className="font-medium text-slate-900">New community</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Recent Chats */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="px-4 pb-2">
+                <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Recent chats</h3>
+                <div className="space-y-1">
+                  {/* Self chat */}
+                  <div className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
+                      V2
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-slate-900">Vicky 2</div>
+                      <div className="text-sm text-slate-500">Message yourself</div>
+                    </div>
+                  </div>
+                  
+                  {/* Online Users */}
+                  {filteredUsers.slice(0, 5).map((u) => (
+                    <div 
+                      key={u.id} 
+                      className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors"
+                      onClick={() => {
+                        openUserChat(u);
+                        setShowNewChatModal(false);
+                      }}
+                    >
+                      <img 
+                        src={u.photoURL || `https://i.pravatar.cc/150?u=${u.id}`} 
+                        alt={u.displayName || u.email} 
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-slate-900 truncate">{u.displayName || u.email}</div>
+                        <div className="text-sm text-slate-500 truncate">Hey there! I am using WhatsApp.</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* No backdrop needed - just dim the main content */}
+        </div>
+      )}
+      
+      {showAllUsersModal && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-24">
+          <div className="w-full max-w-2xl bg-white rounded-lg shadow-lg border">
+            <div className="p-4 flex items-center justify-between border-b">
+              <h2 className="text-lg font-semibold">All Signed-in Users</h2>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowAllUsersModal(false)} className="px-3 py-1 rounded bg-[#efefef]">Close</button>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="mb-3">
+                <input
+                  value={usersSearch}
+                  onChange={(e) => setUsersSearch(e.target.value)}
+                  placeholder="Search users"
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none"
+                />
+              </div>
+              {onlineUsers.length === 0 ? (
+                <div className="text-sm text-slate-500">No users yet</div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="text-sm text-slate-500">No matching users</div>
+              ) : (
+                <div className="grid grid-cols-1 gap-2">
+                  {filteredUsers.map(u => (
+                    <div key={u.id} className="flex items-center gap-3 p-3 border rounded hover:bg-slate-50 cursor-pointer" onClick={() => openUserChat(u)}>
+                      <img src={u.photoURL || `https://i.pravatar.cc/150?u=${u.id}`} alt={u.displayName || u.email} className="w-12 h-12 rounded-full object-cover" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{u.displayName || u.email}</div>
+                        <div className="text-xs text-slate-500 truncate">{u.email}</div>
+                      </div>
+                      <div className="text-xs text-slate-400">{u.lastSeen ? (u.lastSeen.seconds ? new Date(u.lastSeen.seconds * 1000).toLocaleString() : String(u.lastSeen)) : '—'}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
