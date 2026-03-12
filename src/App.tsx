@@ -28,7 +28,10 @@ import {
   Keyboard,
   HelpCircle,
   LogOut,
-  UserPlus
+  UserPlus,
+  Send,
+  Mic,
+  Paperclip
 } from 'lucide-react';
 import { auth, db } from './firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -216,13 +219,16 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [user, setUser] = useState<any | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const [dotsImage, setDotsImage] = useState('default');
+  const [showProfileInterface, setShowProfileInterface] = useState(false);
+  const [showDotsMenu, setShowDotsMenu] = useState(false);
+  const [inputMessage, setInputMessage] = useState('');
   const [showUsers, setShowUsers] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [usersSearch, setUsersSearch] = useState('');
   const [showAllUsersModal, setShowAllUsersModal] = useState(false);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [newChatSearch, setNewChatSearch] = useState('');
-  const [showProfileInterface, setShowProfileInterface] = useState(false);
 
   function openUserChat(u: any) {
     const chat: Chat = {
@@ -236,6 +242,22 @@ export default function App() {
     setShowUsers(false);
     setShowAllUsersModal(false);
   }
+
+  const sendMessage = () => {
+    if (inputMessage.trim() === '') return;
+    
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      sender: user?.displayName || user?.email || 'You',
+      avatar: user?.photoURL || 'https://api.dicebear.com/7.x/initials/svg?seed=YOU&backgroundColor=00a3ff',
+      text: inputMessage,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isMe: true
+    };
+    
+    setMessages([...messages, newMessage]);
+    setInputMessage('');
+  };
 
   // read URL params to support opening a full users page or a user profile in a new tab
   const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
@@ -652,7 +674,41 @@ export default function App() {
           )}
         </div>
 
-        {/* Input removed per request */}
+        {/* Chat Input Section */}
+        <div className="px-4 py-3 border-t border-slate-200 bg-white">
+          <div className="flex items-center gap-3">
+            {/* Emoji Button */}
+            <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+              <Smile size={24} className="text-slate-500" />
+            </button>
+            
+            {/* Attach Button */}
+            <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+              <Paperclip size={24} className="text-slate-500" />
+            </button>
+            
+            {/* Text Input */}
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                placeholder="Type a message..."
+                className="w-full px-4 py-2.5 bg-[#f0f2f5] rounded-[25px] text-sm focus:outline-none focus:bg-white focus:border-slate-300 border border-transparent transition-all"
+              />
+            </div>
+            
+            {/* Microphone Button - Dynamic */}
+            <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+              {inputMessage.trim() === '' ? (
+                <Mic size={24} className="text-slate-500" />
+              ) : (
+                <Send size={24} className="text-slate-500" onClick={sendMessage} />
+              )}
+            </button>
+          </div>
+        </div>
       </main>
       {showNewChatModal && (
         <div className="fixed inset-0 z-50 flex">
@@ -718,9 +774,12 @@ export default function App() {
                 <button className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors">
                   <div className="w-10 h-10 bg-[#00a884] rounded-full flex items-center justify-center">
                     <div className="flex gap-0.5">
-                      <div className="w-2 h-2 bg-white rounded-full"></div>
-                      <div className="w-2 h-2 bg-white rounded-full"></div>
-                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                      <button className="w-8 h-8 bg-white rounded-full hover:bg-slate-100 transition-colors" onClick={() => {
+                        console.log('Second dot clicked');
+                        setDotsImage('second');
+                      }}>
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      </button>
                     </div>
                   </div>
                   <span className="font-medium text-slate-900">New community</span>
