@@ -1,0 +1,5 @@
+{
+  "name": "Arattai Chat Clone",
+  "description": "A high-fidelity clone of the Arattai chat interface with sidebar, conversation list, and active chat window.",
+  "requestFramePermissions": []
+}
