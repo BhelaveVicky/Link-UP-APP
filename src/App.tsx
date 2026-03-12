@@ -189,6 +189,11 @@ export default function App() {
   const [showUsers, setShowUsers] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
+  // read URL params to support opening a full users page or a user profile in a new tab
+  const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const profileUid = params.get('profile');
+  const showAllUsersPage = params.get('users') === '1';
+
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (u) => setUser(u));
 
@@ -236,6 +241,70 @@ export default function App() {
     });
     return () => unsub();
   }, []);
+
+  // If the app was opened with ?users=1 or ?profile=<uid>, render a full-screen users/profile page
+  if (showAllUsersPage) {
+    return (
+      <div className="flex h-screen w-full items-start justify-center bg-[#f4f7f9] text-slate-900 font-sans">
+        <div className="w-full max-w-3xl mt-8 bg-white rounded-lg shadow-lg border">
+          <div className="p-4 flex items-center justify-between border-b">
+            <h2 className="text-lg font-semibold">All Signed-in Users</h2>
+            <div className="flex items-center gap-2">
+              <button onClick={() => { if (typeof window !== 'undefined') window.close(); }} className="px-3 py-1 rounded bg-[#efefef]">Close</button>
+            </div>
+          </div>
+          <div className="p-4">
+            {onlineUsers.length === 0 ? (
+              <div className="text-sm text-slate-500">No users yet</div>
+            ) : (
+              <div className="grid grid-cols-1 gap-2">
+                {onlineUsers.map(u => (
+                  <div key={u.id} className="flex items-center gap-3 p-3 border rounded hover:bg-slate-50 cursor-pointer" onClick={() => { if (typeof window !== 'undefined') window.open(`${window.location.origin}${window.location.pathname}?profile=${u.id}`, '_blank'); }}>
+                    <img src={u.photoURL || `https://i.pravatar.cc/150?u=${u.id}`} alt={u.displayName || u.email} className="w-12 h-12 rounded-full object-cover" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium truncate">{u.displayName || u.email}</div>
+                      <div className="text-xs text-slate-500 truncate">{u.email}</div>
+                    </div>
+                    <div className="text-xs text-slate-400">{u.lastSeen ? new Date(u.lastSeen.seconds * 1000).toLocaleString() : '—'}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (profileUid) {
+    const p = onlineUsers.find(u => u.id === profileUid) || null;
+    return (
+      <div className="flex h-screen w-full items-start justify-center bg-[#f4f7f9] text-slate-900 font-sans">
+        <div className="w-full max-w-2xl mt-8 bg-white rounded-lg shadow-lg border">
+          <div className="p-4 flex items-center justify-between border-b">
+            <h2 className="text-lg font-semibold">User Profile</h2>
+            <div className="flex items-center gap-2">
+              <button onClick={() => { if (typeof window !== 'undefined') window.close(); }} className="px-3 py-1 rounded bg-[#efefef]">Close</button>
+            </div>
+          </div>
+          <div className="p-6">
+            {p ? (
+              <div className="flex items-center gap-4">
+                <img src={p.photoURL || `https://i.pravatar.cc/150?u=${p.id}`} alt={p.displayName || p.email} className="w-24 h-24 rounded-full object-cover" />
+                <div>
+                  <div className="text-xl font-semibold">{p.displayName || p.email}</div>
+                  <div className="text-sm text-slate-500">{p.email}</div>
+                  <div className="mt-2 text-sm text-slate-600">Last seen: {p.lastSeen ? new Date(p.lastSeen.seconds * 1000).toLocaleString() : 'Unknown'}</div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-slate-500">User not found.</div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleSignIn = async () => {
     try {
@@ -327,15 +396,26 @@ export default function App() {
                   {onlineUsers.length === 0 ? (
                     <div className="p-3 text-sm text-slate-500">No users yet</div>
                   ) : (
-                    onlineUsers.map((u) => (
-                      <div key={u.id} className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50">
-                        <img src={u.photoURL || `https://i.pravatar.cc/150?u=${u.id}`} alt={u.displayName || u.email} className="w-8 h-8 rounded-full object-cover" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{u.displayName || u.email}</div>
-                          <div className="text-xs text-slate-400 truncate">{u.email}</div>
+                    <div>
+                      {onlineUsers.map((u) => (
+                        <div
+                          key={u.id}
+                          role="button"
+                          onClick={() => { if (typeof window !== 'undefined') window.open(`${window.location.origin}${window.location.pathname}?profile=${u.id}`, '_blank'); }}
+                          className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 cursor-pointer"
+                        >
+                          <img src={u.photoURL || `https://i.pravatar.cc/150?u=${u.id}`} alt={u.displayName || u.email} className="w-8 h-8 rounded-full object-cover" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">{u.displayName || u.email}</div>
+                            <div className="text-xs text-slate-400 truncate">{u.email}</div>
+                          </div>
                         </div>
+                      ))}
+
+                      <div className="border-t p-2">
+                        <button onClick={() => { if (typeof window !== 'undefined') window.open(`${window.location.origin}${window.location.pathname}?users=1`, '_blank'); }} className="w-full text-sm text-left px-2 py-2 hover:bg-slate-50 rounded">View all signed-in users</button>
                       </div>
-                    ))
+                    </div>
                   )}
                 </div>
               </div>
