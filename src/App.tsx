@@ -33,7 +33,9 @@ import {
   Mic,
   Paperclip,
   Trash2,
-  UserX
+  UserX,
+  Users,
+  Settings
 } from 'lucide-react';
 import { auth, db } from './firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -233,6 +235,7 @@ export default function App() {
   const [newChatSearch, setNewChatSearch] = useState('');
   const [showChatDropdown, setShowChatDropdown] = useState(false);
   const [isUserBlocked, setIsUserBlocked] = useState(false);
+  const [showSidebarDropdown, setShowSidebarDropdown] = useState(false);
 
   function openUserChat(u: any) {
     const chat: Chat = {
@@ -279,16 +282,19 @@ export default function App() {
       if (!target.closest('.chat-dropdown-container') && !target.closest('.chat-dropdown-menu')) {
         setShowChatDropdown(false);
       }
+      if (!target.closest('.sidebar-dropdown-container') && !target.closest('.sidebar-dropdown-menu')) {
+        setShowSidebarDropdown(false);
+      }
     };
 
-    if (showChatDropdown) {
+    if (showChatDropdown || showSidebarDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showChatDropdown]);
+  }, [showChatDropdown, showSidebarDropdown]);
 
   // read URL params to support opening a full users page or a user profile in a new tab
   const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
@@ -509,7 +515,56 @@ export default function App() {
         <header className="p-4 flex items-center justify-between">
           <h1 className="text-xl font-bold">Chats</h1>
           <div className="flex gap-3 relative">
-            <MoreHorizontal size={20} className="text-slate-400 cursor-pointer" />
+            <div className="relative sidebar-dropdown-container">
+              <button 
+                onClick={() => setShowSidebarDropdown(!showSidebarDropdown)}
+                className="p-1 rounded-full hover:bg-slate-100 transition-colors"
+              >
+                <MoreHorizontal size={20} className="text-slate-400 cursor-pointer" />
+              </button>
+              
+              {showSidebarDropdown && (
+                <div className="absolute right-0 mt-2 w-56 rounded-lg shadow-lg border z-50 sidebar-dropdown-menu bg-white border-slate-200">
+                  <button className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors text-slate-900">
+                    <Users size={16} className="text-slate-600" />
+                    <span className="text-sm">New Group</span>
+                  </button>
+                  
+                  <button className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors text-slate-900">
+                    <Star size={16} className="text-yellow-500" />
+                    <span className="text-sm">Starred Messages</span>
+                  </button>
+                  
+                  <button className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors text-slate-900">
+                    <CheckCheck size={16} className="text-blue-500" />
+                    <span className="text-sm">Select Chats</span>
+                  </button>
+                  
+                  <div className="border-t border-slate-200" />
+                  
+                  <button className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors text-slate-900">
+                    <Settings size={16} className="text-slate-600" />
+                    <span className="text-sm">Settings</span>
+                  </button>
+                  
+                  <button className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors text-slate-900">
+                    <Lock size={16} className="text-green-600" />
+                    <span className="text-sm">App Lock</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      signOut(auth);
+                      setShowSidebarDropdown(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors text-red-600"
+                  >
+                    <LogOut size={16} className="text-red-600" />
+                    <span className="text-sm">Log Out</span>
+                  </button>
+                </div>
+              )}
+            </div>
             <button
               onClick={() => { setShowNewChatModal(true); setShowUsers(false); }}
               aria-label="show users"
