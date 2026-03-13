@@ -705,16 +705,17 @@ export default function App() {
               <span className="text-[12px] text-slate-500">{activeChat.participants || ''}</span>
             </div>
           </div>
-          <div className="flex items-center gap-5 text-slate-400">
-            <Search size={20} className="cursor-pointer hover:text-slate-600" />
-            <Phone size={20} className="cursor-pointer hover:text-slate-600" />
-            <Video size={20} className="cursor-pointer hover:text-slate-600" />
+          <div className="flex items-center gap-8 pr-6">
+            <Video size={24} className="text-black cursor-pointer hover:text-gray-700" />
+            <Phone size={24} className="text-black cursor-pointer hover:text-gray-700 ml-2" />
+            <div className="h-8 w-px bg-gray-400 mx-4" />
+            <Search size={24} className="text-black cursor-pointer hover:text-gray-700" />
             <div className="relative chat-dropdown-container">
               <button 
                 onClick={() => setShowChatDropdown(!showChatDropdown)}
                 className="p-1 rounded-full hover:bg-slate-100 transition-colors"
               >
-                <MoreHorizontal size={20} className="cursor-pointer hover:text-slate-600" />
+                <MoreHorizontal size={24} className="text-black cursor-pointer hover:text-gray-700" />
               </button>
               
               {showChatDropdown && (
@@ -739,7 +740,6 @@ export default function App() {
                 </div>
               )}
             </div>
-            <X size={20} className="cursor-pointer hover:text-slate-600" />
           </div>
         </header>
 
@@ -807,12 +807,12 @@ export default function App() {
             <div className="flex items-center gap-3">
               {/* Emoji Button */}
               <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                <Smile size={24} className="text-slate-500" />
+                <Smile size={24} className="text-black" />
               </button>
               
               {/* Attach Button */}
               <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                <Paperclip size={24} className="text-slate-500" />
+                <Paperclip size={24} className="text-black" />
               </button>
               
               {/* Text Input */}
@@ -830,9 +830,9 @@ export default function App() {
               {/* Microphone Button - Dynamic */}
               <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                 {inputMessage.trim() === '' ? (
-                  <Mic size={24} className="text-slate-500" />
+                  <Mic size={24} className="text-black" />
                 ) : (
-                  <Send size={24} className="text-slate-500" onClick={sendMessage} />
+                  <Send size={24} className="text-black" onClick={sendMessage} />
                 )}
               </button>
             </div>
