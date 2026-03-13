@@ -36,7 +36,8 @@ import {
   UserX,
   Users,
   Settings,
-  Target
+  Target,
+  Camera
 } from 'lucide-react';
 import { auth, db } from './firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -237,6 +238,7 @@ export default function App() {
   const [showChatDropdown, setShowChatDropdown] = useState(false);
   const [isUserBlocked, setIsUserBlocked] = useState(false);
   const [showSidebarDropdown, setShowSidebarDropdown] = useState(false);
+  const [showStatusScreen, setShowStatusScreen] = useState(false);
 
   function openUserChat(u: any) {
     const chat: Chat = {
@@ -443,6 +445,7 @@ export default function App() {
 
   const handleSignIn = async () => {
     try {
+      const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
     } catch (err) {
       console.error('Sign-in failed', err);
@@ -476,11 +479,11 @@ export default function App() {
       {/* Sidebar */}
       <aside className="w-[72px] flex flex-col items-center py-4 border-r border-slate-200 bg-white relative z-[60]">
         <div className="mb-6 p-2.5 rounded-xl bg-[#00a3ff] text-white cursor-pointer shadow-sm">
-          <MessageSquare size={24} />
+          <MessageSquare size={24} onClick={() => setShowStatusScreen(false)} />
         </div>
         <nav className="flex flex-col gap-6 text-slate-400">
           <div className="relative">
-            <Target size={24} className="cursor-pointer hover:text-slate-600" />
+            <Target size={24} className="cursor-pointer hover:text-slate-600" onClick={() => setShowStatusScreen(true)} />
           </div>
           <Calendar size={24} className="cursor-pointer hover:text-slate-600" />
           <Phone size={24} className="cursor-pointer hover:text-slate-600" />
@@ -689,6 +692,100 @@ export default function App() {
       </section>
 
       {/* Main Chat Area */}
+      {showStatusScreen && (
+        <main className="absolute top-0 left-[72px] right-0 bottom-0 flex flex-col bg-[#f0f2f5] z-50">
+          {/* Status Header */}
+          <header className="h-16 px-8 flex items-center bg-white">
+            <h1 className="text-xl font-semibold text-slate-900 ml-4">Status</h1>
+          </header>
+
+          {/* Status Content */}
+          <div className="flex-1 flex">
+            {/* Left Side - Status List */}
+            <div className="w-[450px] flex flex-col border-r border-slate-200 bg-white">
+              {/* My Status Section */}
+              <div className="p-4">
+                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
+                  <div className="relative">
+                    <img 
+                      src={user?.photoURL || 'https://api.dicebear.com/7.x/initials/svg?seed=YOU&backgroundColor=00a3ff'} 
+                      alt="My Status" 
+                      className="w-16 h-16 rounded-full object-cover"
+                    />
+                    <div className="absolute bottom-0 right-0 w-6 h-6 bg-[#00a884] rounded-full flex items-center justify-center border-2 border-white">
+                      <Plus size={14} className="text-white" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-lg text-slate-900">My Status</div>
+                    <div className="text-slate-500 text-sm">Tap to add status update</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Status Section */}
+              <div className="p-4">
+                <h2 className="text-slate-500 text-sm font-semibold mb-4">RECENT</h2>
+                
+                {/* Status Items */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
+                    <img 
+                      src="https://i.pravatar.cc/150?u=elon" 
+                      alt="Elon Musk" 
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold text-slate-900">Elon Musk</div>
+                      <div className="text-slate-500 text-sm">07:48</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
+                    <img 
+                      src="https://i.pravatar.cc/150?u=mom" 
+                      alt="Mom" 
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold text-slate-900">Mom</div>
+                      <div className="text-slate-500 text-sm">Yesterday</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors">
+                    <img 
+                      src="https://i.pravatar.cc/150?u=friend" 
+                      alt="Friend" 
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold text-slate-900">Best Friend</div>
+                      <div className="text-slate-500 text-sm">2 days ago</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Side - Share Status */}
+            <div className="flex-1 flex flex-col items-center justify-center bg-white">
+              <div className="text-center max-w-md">
+                <div className="w-24 h-24 mx-auto mb-6 bg-slate-200 rounded-full flex items-center justify-center">
+                  <Camera size={40} className="text-slate-400" />
+                </div>
+                <h2 className="text-2xl font-semibold text-slate-900 mb-2">Share status updates</h2>
+                <p className="text-slate-600 mb-6">Share photos, text, and more with your status.</p>
+                <button className="px-6 py-3 bg-[#00a884] text-white rounded-lg font-medium hover:bg-[#00a775] transition-colors">
+                  Send Status
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+      )}
+      
+      {!showStatusScreen && (
       <main className={`flex-1 flex flex-col bg-[#f0f2f5] ${showNewChatModal ? 'opacity-50 pointer-events-none' : ''}`}>
         {/* Header */}
         <header className="h-16 px-4 flex items-center justify-between bg-white border-b border-slate-200">
@@ -842,6 +939,8 @@ export default function App() {
           )}
         </div>
       </main>
+      )}
+      
       {showNewChatModal && (
         <div className="fixed inset-0 z-50 flex">
           {/* New Chat Panel - Left Side */}
