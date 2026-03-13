@@ -35,7 +35,8 @@ import {
   Trash2,
   UserX,
   Users,
-  Settings
+  Settings,
+  Target
 } from 'lucide-react';
 import { auth, db } from './firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -478,7 +479,9 @@ export default function App() {
           <MessageSquare size={24} />
         </div>
         <nav className="flex flex-col gap-6 text-slate-400">
-          <Film size={24} className="cursor-pointer hover:text-slate-600" />
+          <div className="relative">
+            <Target size={24} className="cursor-pointer hover:text-slate-600" />
+          </div>
           <Calendar size={24} className="cursor-pointer hover:text-slate-600" />
           <Phone size={24} className="cursor-pointer hover:text-slate-600" />
           <Star size={24} className="cursor-pointer hover:text-slate-600" />
