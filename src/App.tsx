@@ -369,6 +369,15 @@ export default function App() {
     return name.includes(q) || email.includes(q);
   });
 
+  // Users filtered for the New Chat modal (uses its own search input)
+  const newChatFilteredUsers = onlineUsers.filter(u => {
+    const q = newChatSearch.trim().toLowerCase();
+    if (!q) return true;
+    const name = (u.displayName || '').toLowerCase();
+    const email = (u.email || '').toLowerCase();
+    return name.includes(q) || email.includes(q);
+  });
+
   if (showAllUsersPage) {
     return (
       <div className="flex h-screen w-full items-start justify-center bg-[#f4f7f9] text-slate-900 font-sans">
@@ -1032,7 +1041,7 @@ export default function App() {
                 <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Recent chats</h3>
                 <div className="space-y-1">
                   {/* Online Users - Only Google Sign-ins */}
-                  {filteredUsers.filter(u => u.provider === 'google.com').slice(0, 5).map((u) => (
+                  {newChatFilteredUsers.filter(u => u.provider === 'google.com').slice(0, 5).map((u) => (
                     <div 
                       key={u.id} 
                       className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors"
