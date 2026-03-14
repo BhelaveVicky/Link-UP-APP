@@ -7,3 +7,16 @@
     display: none;
   }
 }
+
+/* Ensure the app background covers the full viewport and remove default body margin */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background: #fbf9f7; /* match status background */
+}
+
+/* Ensure main app container does not show a white top strip */
+.app-root {
+  min-height: 100vh;
+  background: transparent;
+}

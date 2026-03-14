@@ -4,40 +4,39 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { 
-  MessageSquare, 
-  Film, 
-  Calendar, 
-  Phone, 
-  Star, 
-  MoreHorizontal, 
-  Plus, 
-  Search, 
+import {
+  MessageSquare,
+  Film,
+  Calendar,
+  Phone,
+  Star,
+  MoreHorizontal,
+  Plus,
+  Search,
   Video,
-  X, 
-  Smile, 
+  X,
+  Smile,
   Menu,
   ChevronDown,
   Sparkles,
   ShieldCheck,
   CheckCheck,
-  User,
-  Key,
   Lock,
-  Bell,
-  Keyboard,
-  HelpCircle,
-  LogOut,
-  UserPlus,
-  Send,
-  Mic,
-  Paperclip,
-  Trash2,
-  UserX,
+  Camera,
+  Target,
   Users,
   Settings,
-  Target,
-  Camera
+  LogOut,
+  Trash2,
+  UserX,
+  Paperclip,
+  Mic,
+  Send,
+  User,
+  Key,
+  Bell,
+  Keyboard,
+  HelpCircle
 } from 'lucide-react';
 import { auth, db } from './firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -487,7 +486,7 @@ export default function App() {
           </div>
           <Calendar size={24} className="cursor-pointer hover:text-slate-600" />
           <Phone size={24} className="cursor-pointer hover:text-slate-600" />
-          <Star size={24} className="cursor-pointer hover:text-slate-600" />
+          <Users size={20} className="cursor-pointer hover:text-slate-600" />
         </nav>
         <div className="mt-auto flex flex-col gap-6 items-center pb-4 relative">
           <button onClick={() => { setShowProfileInterface(true); setShowProfile(false); }} className="w-9 h-9 rounded-full bg-[#00a3ff] flex items-center justify-center text-white cursor-pointer overflow-hidden">
@@ -693,7 +692,7 @@ export default function App() {
 
       {/* Main Chat Area */}
       {showStatusScreen && (
-        <main className="absolute top-0 left-[72px] right-0 bottom-0 flex flex-col bg-[#f0f2f5] z-50">
+        <main className="absolute top-0 left-[72px] right-0 bottom-0 flex flex-col bg-[#fbf9f7] z-50">
           {/* Status Header */}
           <header className="h-16 px-8 flex items-center bg-white">
             <h1 className="text-xl font-semibold text-slate-900 ml-4">Status</h1>
@@ -769,17 +768,26 @@ export default function App() {
             </div>
 
             {/* Right Side - Share Status */}
-            <div className="flex-1 flex flex-col items-center justify-center bg-white">
+            <div className="flex-1 flex flex-col items-center justify-center bg-transparent relative">
               <div className="text-center max-w-md">
-                <div className="w-24 h-24 mx-auto mb-6 bg-slate-200 rounded-full flex items-center justify-center">
-                  <Camera size={40} className="text-slate-400" />
+                <div className="w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                  <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <circle cx="36" cy="36" r="12" fill="#EFEFEF" />
+                    <circle cx="36" cy="36" r="22" stroke="#D6D6D6" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="36 18" />
+                    <circle cx="36" cy="36" r="28" stroke="#EEEEEE" strokeWidth="2" fill="none" opacity="0.6" />
+                  </svg>
                 </div>
                 <h2 className="text-2xl font-semibold text-slate-900 mb-2">Share status updates</h2>
-                <p className="text-slate-600 mb-6">Share photos, text, and more with your status.</p>
-                <button className="px-6 py-3 bg-[#00a884] text-white rounded-lg font-medium hover:bg-[#00a775] transition-colors">
-                  Send Status
-                </button>
+                <p className="text-slate-600 mb-6">Share photos, videos and text that disappear after 24 hours.</p>
+                
               </div>
+              <div className="absolute bottom-8 left-0 right-0 flex items-center justify-center">
+                <div className="text-xs text-slate-400 flex items-center gap-2">
+                  <Lock size={14} className="text-slate-400" />
+                  <span>Your status updates are end-to-end encrypted</span>
+                </div>
+              </div>
+              
             </div>
           </div>
         </main>
@@ -1041,6 +1049,14 @@ export default function App() {
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-slate-900 truncate">{u.displayName || u.email}</div>
                         <div className="text-sm text-slate-500 truncate">Hey there! I am using WhatsApp.</div>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); }}
+                          className="px-3 py-1 bg-[#00a3ff] text-white rounded-full text-sm"
+                        >
+                          Add
+                        </button>
                       </div>
                     </div>
                   ))}
