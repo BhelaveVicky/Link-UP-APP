@@ -177,6 +177,7 @@ const INITIAL_MESSAGES: Message[] = [
       sender: '~ RKhanna',
       text: 'Why??'
     }
+    , isMe: false
   },
   {
     id: '2',
@@ -184,6 +185,7 @@ const INITIAL_MESSAGES: Message[] = [
     avatar: 'https://i.pravatar.cc/150?u=sri',
     text: 'Mam can you check do zoho schools has alumi from this school?\nT N P M MARIMUTHU NADAR HIGHER SECONDARY SCHOOL',
     time: '10:29 PM'
+    , isMe: false
   },
   {
     id: '3',
@@ -195,6 +197,7 @@ const INITIAL_MESSAGES: Message[] = [
       sender: '~ RKhanna',
       text: 'Why??'
     }
+    , isMe: false
   },
   {
     id: '4',
@@ -202,6 +205,7 @@ const INITIAL_MESSAGES: Message[] = [
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=TZ',
     text: '',
     time: '10:31 PM'
+    , isMe: true
   },
   {
     id: '5',
@@ -209,6 +213,7 @@ const INITIAL_MESSAGES: Message[] = [
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=IH',
     text: '',
     time: '10:31 PM'
+    , isMe: false
   },
   {
     id: '6',
@@ -216,6 +221,7 @@ const INITIAL_MESSAGES: Message[] = [
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=PL',
     text: '',
     time: '10:31 PM'
+    , isMe: true
   }
 ];
 
@@ -238,6 +244,9 @@ export default function App() {
   const [isUserBlocked, setIsUserBlocked] = useState(false);
   const [showSidebarDropdown, setShowSidebarDropdown] = useState(false);
   const [showStatusScreen, setShowStatusScreen] = useState(false);
+  const [friendRequests, setFriendRequests] = useState<any[]>([]);
+  const [showFriendRequests, setShowFriendRequests] = useState(false);
+  const [userFriends, setUserFriends] = useState<any[]>([]);
 
   function openUserChat(u: any) {
     const chat: Chat = {
@@ -252,20 +261,70 @@ export default function App() {
     setShowAllUsersModal(false);
   }
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (inputMessage.trim() === '' || isUserBlocked) return;
-    
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      sender: user?.displayName || user?.email || 'You',
-      avatar: user?.photoURL || 'https://api.dicebear.com/7.x/initials/svg?seed=YOU&backgroundColor=00a3ff',
+    let currentUser = user;
+    if (!currentUser) {
+      const provider = new GoogleAuthProvider();
+      try {
+        const res = await signInWithPopup(auth, provider);
+        currentUser = res.user;
+        setUser(res.user);
+      } catch (err) {
+        console.error('Sign-in required to send message', err);
+        return;
+      }
+    }
+
+    // Try multiple potential id fields (some objects may come from different sources)
+    const receiverId = activeChat?.id ?? activeChat?.uid ?? activeChat?.userId ?? (activeChat && (activeChat as any).email) ?? null;
+    if (!receiverId) {
+      console.error('No receiver selected. activeChat:', activeChat);
+      // help user select a chat
+      setShowUsers(true);
+      alert('Please select a user to chat with first.');
+      return;
+    }
+
+    const senderId = currentUser?.uid || auth.currentUser?.uid;
+    if (!senderId) {
+      console.error('No sender id available', { currentUser, authCurrent: auth.currentUser });
+      return;
+    }
+
+    const convId = [senderId, receiverId].sort().join('_');
+    const msgsRef = collection(db, 'conversations', convId, 'messages');
+
+    // optimistic local message
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg: Message = {
+      id: tempId,
+      sender: currentUser?.displayName || currentUser?.email || 'You',
+      avatar: currentUser?.photoURL || 'https://api.dicebear.com/7.x/initials/svg?seed=YOU&backgroundColor=00a3ff',
       text: inputMessage,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isMe: true
     };
-    
-    setMessages([...messages, newMessage]);
+    setMessages((prev) => [...prev, optimisticMsg]);
     setInputMessage('');
+
+    // save to Firestore
+    (async () => {
+      try {
+        const docRef = await addDoc(msgsRef, {
+          sender_id: senderId,
+          receiver_id: receiverId,
+          message_text: inputMessage,
+          timestamp: serverTimestamp(),
+          avatar: currentUser?.photoURL || null,
+          sender_displayName: currentUser?.displayName || null
+        });
+        // add message_id field
+        await setDoc(doc(db, 'conversations', convId, 'messages', docRef.id), { message_id: docRef.id }, { merge: true });
+      } catch (err) {
+        console.error('Failed to save message', err);
+      }
+    })();
   };
 
   const deleteChat = () => {
@@ -276,6 +335,54 @@ export default function App() {
   const toggleBlockUser = () => {
     setIsUserBlocked(!isUserBlocked);
     setShowChatDropdown(false);
+  };
+
+  // Send friend request
+  const sendFriendRequest = async (receiverId: string) => {
+    if (!user) return;
+    try {
+      const requestRef = await addDoc(collection(db, 'friendRequests'), {
+        senderId: user.uid,
+        senderName: user.displayName || user.email,
+        senderAvatar: user.photoURL,
+        receiverId: receiverId,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+      console.log('Friend request sent:', requestRef.id);
+    } catch (err) {
+      console.error('Error sending friend request:', err);
+    }
+  };
+
+  // Accept friend request
+  const acceptFriendRequest = async (requestId: string, senderId: string) => {
+    if (!user) return;
+    try {
+      // Update request status
+      await setDoc(doc(db, 'friendRequests', requestId), { status: 'accepted' }, { merge: true });
+      
+      // Create friendship
+      await addDoc(collection(db, 'friendships'), {
+        participants: [user.uid, senderId],
+        status: 'accepted',
+        createdAt: serverTimestamp()
+      });
+      
+      console.log('Friend request accepted');
+    } catch (err) {
+      console.error('Error accepting friend request:', err);
+    }
+  };
+
+  // Reject friend request
+  const rejectFriendRequest = async (requestId: string) => {
+    try {
+      await setDoc(doc(db, 'friendRequests', requestId), { status: 'rejected' }, { merge: true });
+      console.log('Friend request rejected');
+    } catch (err) {
+      console.error('Error rejecting friend request:', err);
+    }
   };
 
   useEffect(() => {
@@ -303,31 +410,48 @@ export default function App() {
   const profileUid = params.get('profile');
   const showAllUsersPage = params.get('users') === '1';
 
+  // auth listener (sets `user`)
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsubAuth();
+  }, []);
 
-    const q = query(collection(db, 'messages'), orderBy('createdAt'));
-    const unsubMsgs = onSnapshot(q, (snap) => {
+  // Listen to messages for the active conversation between signed-in user and activeChat
+  useEffect(() => {
+    if (!user || !activeChat || !activeChat.id) {
+      setMessages(INITIAL_MESSAGES);
+      return;
+    }
+
+    const senderId = user.uid;
+    const convId = [senderId, activeChat.id].sort().join('_');
+    const msgsRef = collection(db, 'conversations', convId, 'messages');
+    const q = query(msgsRef, orderBy('timestamp'));
+    const unsub = onSnapshot(q, (snap) => {
+      console.log('Conversation snapshot', convId, 'count=', snap.size);
+      if (snap.empty) {
+        setMessages(INITIAL_MESSAGES);
+        return;
+      }
+
       const docs = snap.docs.map((d) => {
         const data: any = d.data();
+        const ts = data.timestamp && data.timestamp.toDate ? data.timestamp.toDate() : null;
         return {
           id: d.id,
-          sender: data.sender || (data.email ?? 'Unknown'),
+          sender: data.sender_id || data.sender || (data.email ?? 'Unknown'),
           avatar: data.avatar || 'https://i.pravatar.cc/150?u=guest',
-          text: data.text || '',
-          time: data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-          isMe: user ? data.uid === user.uid : false,
+          text: data.message_text || data.text || '',
+          time: ts ? ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          isMe: user ? data.sender_id === user.uid : false,
           quote: data.quote
         } as Message;
       });
       setMessages(docs);
     });
 
-    return () => {
-      unsubAuth();
-      unsubMsgs();
-    };
-  }, [db, user]);
+    return () => unsub();
+  }, [db, user, activeChat]);
 
   // write/update the signed-in user's profile in `users` collection
   useEffect(() => {
@@ -359,6 +483,44 @@ export default function App() {
     });
     return () => unsub();
   }, []);
+
+  // Subscribe to friend requests for current user
+  useEffect(() => {
+    if (!user) return;
+    const requestsRef = collection(db, 'friendRequests');
+    const q = query(requestsRef, where('receiverId', '==', user.uid), where('status', '==', 'pending'));
+    const unsub = onSnapshot(q, (snap) => {
+      const reqs = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+      console.log('Friend requests received', reqs);
+      setFriendRequests(reqs);
+    });
+    return () => unsub();
+  }, [user]);
+
+  // Subscribe to friends list
+  useEffect(() => {
+    if (!user) return;
+    const friendsRef = collection(db, 'friendships');
+    const q = query(friendsRef, 
+      where('status', '==', 'accepted'),
+      where('participants', 'array-contains', user.uid)
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const friendships = snap.docs.map(d => d.data() as any);
+      const friendIds = friendships.map(f => f.participants.find((p: string) => p !== user.uid));
+      // Get full user data for friends
+      const friendsPromise = Promise.all(
+        friendIds.map(fid => 
+          getDocs(query(collection(db, 'users'), where('__name__', '==', fid)))
+            .then(snap => snap.docs[0]?.data())
+        )
+      );
+      friendsPromise.then(friends => {
+        setUserFriends(friends.filter(Boolean));
+      });
+    });
+    return () => unsub();
+  }, [user]);
 
   // If the app was opened with ?users=1 or ?profile=<uid>, render a full-screen users/profile page
   const filteredUsers = onlineUsers.filter(u => {
@@ -587,6 +749,63 @@ export default function App() {
               <Plus size={18} />
             </button>
 
+            {/* Friend Request Notification Icon */}
+            <button
+              onClick={() => setShowFriendRequests(!showFriendRequests)}
+              className="p-2 rounded-full hover:bg-slate-100 relative cursor-pointer transition-colors"
+              aria-label="friend requests"
+            >
+              <Users size={20} className="text-slate-600" />
+              {friendRequests.length > 0 && (
+                <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {friendRequests.length}
+                </div>
+              )}
+            </button>
+
+            {/* Friend Requests Dropdown */}
+            {showFriendRequests && (
+              <div className="absolute right-12 mt-2 w-80 bg-white border rounded-lg shadow-lg z-50">
+                <div className="p-4 border-b">
+                  <h3 className="font-semibold text-slate-900">Friend Requests</h3>
+                </div>
+                <div className="max-h-96 overflow-y-auto scrollbar-hide">
+                  {friendRequests.length === 0 ? (
+                    <div className="p-4 text-sm text-slate-500 text-center">No pending requests</div>
+                  ) : (
+                    <div className="divide-y">
+                      {friendRequests.map((req) => (
+                        <div key={req.id} className="p-3 flex items-center gap-3">
+                          <img 
+                            src={req.senderAvatar || `https://i.pravatar.cc/150?u=${req.senderId}`} 
+                            alt={req.senderName} 
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm text-slate-900 truncate">{req.senderName}</div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => acceptFriendRequest(req.id, req.senderId)}
+                              className="px-3 py-1 bg-[#00a884] text-white text-xs rounded-full hover:bg-[#008774]"
+                            >
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => rejectFriendRequest(req.id)}
+                              className="px-3 py-1 bg-slate-200 text-slate-700 text-xs rounded-full hover:bg-slate-300"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {showUsers && (
               <div className="absolute right-0 mt-10 w-64 bg-white border rounded-md shadow-lg z-50">
                 <div className="p-3 border-b text-sm font-semibold">Logged in users</div>
@@ -661,41 +880,73 @@ export default function App() {
         </div>
 
         <div className="flex-1 overflow-y-auto scrollbar-hide">
-          {MOCK_CHATS.map((chat) => (
-            <div 
-              key={chat.id}
-              onClick={() => setActiveChat(chat)}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-slate-50",
-                activeChat.id === chat.id ? "bg-[#e1f3ff]" : "hover:bg-slate-50"
-              )}
-            >
-              <img 
-                src={chat.avatar} 
-                alt={chat.name} 
-                className="w-12 h-12 rounded-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-0.5">
-                  <div className="flex items-center gap-1">
-                    <span className="font-semibold text-[15px] truncate">{chat.name}</span>
-                    {chat.isVerified && (
-                      <ShieldCheck size={14} className="text-[#4caf50]" />
-                    )}
-                    {chat.isOfficial && (
-                      <ShieldCheck size={14} className="text-[#ff9800]" />
-                    )}
+          {/* Show accepted friends first, then mock chats as fallback */}
+          {userFriends.length > 0 ? (
+            userFriends.map((friend) => (
+              <div 
+                key={friend.id}
+                onClick={() => openUserChat(friend)}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-slate-50",
+                  activeChat.id === friend.id ? "bg-[#e1f3ff]" : "hover:bg-slate-50"
+                )}
+              >
+                <img 
+                  src={friend.photoURL || `https://i.pravatar.cc/150?u=${friend.id}`} 
+                  alt={friend.displayName || friend.email} 
+                  className="w-12 h-12 rounded-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold text-[15px] truncate">{friend.displayName || friend.email}</span>
+                    </div>
+                    <span className="text-[11px] text-slate-400">Active</span>
                   </div>
-                  <span className="text-[11px] text-slate-400">{chat.time}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  {chat.hasCheck && <CheckCheck size={14} className="text-slate-400" />}
-                  <p className="text-[13px] text-slate-500 truncate">{chat.lastMessage}</p>
+                  <div className="flex items-center gap-1">
+                    <p className="text-[13px] text-slate-500 truncate">Friend</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            MOCK_CHATS.map((chat) => (
+              <div 
+                key={chat.id}
+                onClick={() => setActiveChat(chat)}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-slate-50",
+                  activeChat.id === chat.id ? "bg-[#e1f3ff]" : "hover:bg-slate-50"
+                )}
+              >
+                <img 
+                  src={chat.avatar} 
+                  alt={chat.name} 
+                  className="w-12 h-12 rounded-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold text-[15px] truncate">{chat.name}</span>
+                      {chat.isVerified && (
+                        <ShieldCheck size={14} className="text-[#4caf50]" />
+                      )}
+                      {chat.isOfficial && (
+                        <ShieldCheck size={14} className="text-[#ff9800]" />
+                      )}
+                    </div>
+                    <span className="text-[11px] text-slate-400">{chat.time}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {chat.hasCheck && <CheckCheck size={14} className="text-slate-400" />}
+                    <p className="text-[13px] text-slate-500 truncate">{chat.lastMessage}</p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </section>
 
@@ -1061,8 +1312,11 @@ export default function App() {
                       </div>
                       <div className="flex-shrink-0">
                         <button
-                          onClick={(e) => { e.stopPropagation(); }}
-                          className="px-3 py-1 bg-[#00a3ff] text-white rounded-full text-sm"
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            sendFriendRequest(u.id);
+                          }}
+                          className="px-3 py-1 bg-[#00a3ff] text-white rounded-full text-sm hover:bg-[#0088cc]"
                         >
                           Add
                         </button>
