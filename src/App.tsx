@@ -247,6 +247,8 @@ export default function App() {
   const [showStatusScreen, setShowStatusScreen] = useState(false);
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
+  const [showFriendRequestsModal, setShowFriendRequestsModal] = useState(false);
+  const [selectedFriendRequest, setSelectedFriendRequest] = useState<any>(null);
   const [userFriends, setUserFriends] = useState<any[]>([]);
   const [showMeetings, setShowMeetings] = useState(false);
   const [showCalls, setShowCalls] = useState(false);
@@ -793,7 +795,7 @@ export default function App() {
 
             {/* Friend Request Notification Icon */}
             <button
-              onClick={() => setShowFriendRequests(!showFriendRequests)}
+              onClick={() => setShowFriendRequestsModal(true)}
               className="p-2 rounded-full hover:bg-slate-100 relative cursor-pointer transition-colors"
               aria-label="friend requests"
             >
@@ -805,48 +807,8 @@ export default function App() {
               )}
             </button>
 
-            {/* Friend Requests Dropdown */}
-            {showFriendRequests && (
-              <div className="absolute right-12 mt-2 w-80 bg-white border rounded-lg shadow-lg z-50">
-                <div className="p-4 border-b">
-                  <h3 className="font-semibold text-slate-900">Friend Requests</h3>
-                </div>
-                <div className="max-h-96 overflow-y-auto scrollbar-hide">
-                  {friendRequests.length === 0 ? (
-                    <div className="p-4 text-sm text-slate-500 text-center">No pending requests</div>
-                  ) : (
-                    <div className="divide-y">
-                      {friendRequests.map((req) => (
-                        <div key={req.id} className="p-3 flex items-center gap-3">
-                          <img 
-                            src={req.senderAvatar || `https://i.pravatar.cc/150?u=${req.senderId}`} 
-                            alt={req.senderName} 
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm text-slate-900 truncate">{req.senderName}</div>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => acceptFriendRequest(req.id, req.senderId)}
-                              className="px-3 py-1 bg-[#00a884] text-white text-xs rounded-full hover:bg-[#008774]"
-                            >
-                              Accept
-                            </button>
-                            <button
-                              onClick={() => rejectFriendRequest(req.id)}
-                              className="px-3 py-1 bg-slate-200 text-slate-700 text-xs rounded-full hover:bg-slate-300"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+            {/* Friend Requests Dropdown - Removed, now showing as full-screen modal */}
+
 
             {showUsers && (
               <div className="absolute right-0 mt-10 w-64 bg-white border rounded-md shadow-lg z-50">
@@ -1825,6 +1787,128 @@ export default function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Full-screen Friend Requests Modal with Two-Panel Layout */}
+      {showFriendRequestsModal && (
+        <main className="absolute top-0 left-[72px] right-0 bottom-0 flex flex-col bg-white z-50">
+          {/* Header */}
+          <header className="h-16 px-6 flex items-center justify-between border-b border-slate-200 bg-white">
+            <h1 className="text-2xl font-bold text-slate-900">Friend Requests</h1>
+            <button 
+              onClick={() => {setShowFriendRequestsModal(false); setSelectedFriendRequest(null);}} 
+              className="p-1 hover:bg-slate-100 rounded transition-colors shrink-0"
+              aria-label="close friend requests"
+            >
+              <X size={24} className="text-slate-700" />
+            </button>
+          </header>
+
+          {/* Two-Panel Layout */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Left Panel - Friend Requests List */}
+            <div className="w-[500px] flex flex-col border-r border-slate-200 bg-white">
+              {/* Search Bar */}
+              <div className="p-4 border-b border-slate-200">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+                  <input 
+                    type="text" 
+                    placeholder="Search requests..."
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-100 rounded-lg text-sm placeholder-slate-600 focus:outline-none focus:bg-white focus:border focus:border-slate-300"
+                  />
+                </div>
+              </div>
+
+              {/* Requests List */}
+              <div className="flex-1 overflow-y-auto">
+                {friendRequests.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-center py-12 px-6">
+                    <Users size={56} className="text-slate-300 mb-4" />
+                    <h3 className="text-base font-semibold text-slate-900">No friend requests</h3>
+                    <p className="text-sm text-slate-500 mt-2">You don't have any pending requests</p>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {friendRequests.map((request) => (
+                      <div 
+                        key={request.id}
+                        onClick={() => setSelectedFriendRequest(request)}
+                        className={`px-4 py-4 flex items-center gap-4 cursor-pointer transition-colors ${
+                          selectedFriendRequest?.id === request.id 
+                            ? 'bg-blue-50 border-l-4 border-l-[#00a3ff]' 
+                            : 'hover:bg-slate-50'
+                        }`}
+                      >
+                        <img 
+                          src={request.senderAvatar || `https://i.pravatar.cc/150?u=${request.senderId}`} 
+                          alt={request.senderName}
+                          className="w-12 h-12 rounded-full object-cover shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-slate-900 truncate">
+                            {request.senderName}
+                          </h4>
+                          <p className="text-xs text-slate-500 truncate">Sent you a request</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Panel - Request Details */}
+            <div className="flex-1 flex flex-col bg-slate-50">
+              {selectedFriendRequest ? (
+                <>
+                  {/* Details Header */}
+                  <div className="p-8 text-center border-b border-slate-200 bg-white">
+                    <img 
+                      src={selectedFriendRequest.senderAvatar || `https://i.pravatar.cc/150?u=${selectedFriendRequest.senderId}`} 
+                      alt={selectedFriendRequest.senderName}
+                      className="w-24 h-24 rounded-full object-cover mx-auto mb-4"
+                    />
+                    <h2 className="text-2xl font-bold text-slate-900">
+                      {selectedFriendRequest.senderName}
+                    </h2>
+                    <p className="text-sm text-slate-500 mt-2">Sent you a friend request</p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex-1 flex flex-col items-center justify-center px-6">
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={() => {
+                          acceptFriendRequest(selectedFriendRequest.id, selectedFriendRequest.senderId);
+                          setSelectedFriendRequest(null);
+                        }}
+                        className="px-8 py-3 bg-[#00a3ff] text-white rounded-lg hover:bg-[#0088cc] transition-colors font-semibold text-sm"
+                      >
+                        Accept
+                      </button>
+                      <button 
+                        onClick={() => {
+                          rejectFriendRequest(selectedFriendRequest.id);
+                          setSelectedFriendRequest(null);
+                        }}
+                        className="px-8 py-3 bg-slate-200 text-slate-900 rounded-lg hover:bg-slate-300 transition-colors font-semibold text-sm"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-center">
+                  <Users size={80} className="text-slate-200 mb-4" />
+                  <h3 className="text-2xl font-bold text-slate-900 mb-2">Friend Requests</h3>
+                  <p className="text-slate-500">Select a request to accept or reject</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
       )}
     </div>
     </>
