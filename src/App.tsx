@@ -233,7 +233,10 @@ export default function App() {
   const [usersLoaded, setUsersLoaded] = useState(false);
   const [dotsImage, setDotsImage] = useState('default');
   const [showProfileInterface, setShowProfileInterface] = useState(false);
-  const [showDotsMenu, setShowDotsMenu] = useState(false);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [showAccountEdit, setShowAccountEdit] = useState(false);
+  const [profileName, setProfileName] = useState(user?.displayName || '');
+  const [profileAbout, setProfileAbout] = useState('');
   const [inputMessage, setInputMessage] = useState('');
   const [showUsers, setShowUsers] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -1653,7 +1656,12 @@ export default function App() {
                   <h3 className="text-xl font-semibold text-slate-900 mb-1">{user?.displayName || user?.email || 'User'}</h3>
                   <p className="text-sm text-slate-500 mb-4">{user?.email || ''}</p>
                 </div>
-                <button className="w-full flex items-center gap-3 py-4 hover:bg-slate-50 transition-colors rounded-lg">
+                <button 
+                  onClick={() => {
+                    setShowProfileEdit(true);
+                    setProfileName(user?.displayName || '');
+                  }}
+                  className="w-full flex items-center gap-3 py-4 hover:bg-slate-50 transition-colors rounded-lg">
                   <div className="w-8 h-8 flex items-center justify-center text-slate-600 flex-shrink-0">
                     <User size={20} />
                   </div>
@@ -1743,6 +1751,86 @@ export default function App() {
           </div>
           
           {/* No backdrop needed - just dim the main content */}
+        </div>
+      )}
+
+      {/* Profile Edit Modal */}
+      {showProfileEdit && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Left Sidebar */}
+          <div className="w-16 bg-white border-r border-slate-200 flex flex-col items-center py-4 z-[70]">
+            <div className="w-10 h-10 rounded-full overflow-hidden mb-4">
+              <img src={user?.photoURL || 'https://api.dicebear.com/7.x/initials/svg?seed=V&backgroundColor=00a3ff'} alt="Profile" className="w-full h-full object-cover" />
+            </div>
+          </div>
+
+          {/* Profile Edit Panel */}
+          <div className="w-[450px] bg-white flex flex-col">
+            {/* Header */}
+            <div className="p-4 flex items-center justify-between border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setShowProfileEdit(false)} className="p-1 hover:bg-slate-100 rounded">
+                  <X size={20} className="text-slate-700" />
+                </button>
+                <h2 className="text-lg font-semibold text-slate-900">Edit Profile</h2>
+              </div>
+            </div>
+
+            {/* Profile Edit Content */}
+            <div className="flex-1 overflow-y-auto scrollbar-hide">
+              <div className="px-6 py-6">
+                {/* Profile Photo Section */}
+                <div className="flex flex-col items-center mb-8">
+                  <div className="relative mb-4">
+                    <img 
+                      src={user?.photoURL || 'https://api.dicebear.com/7.x/initials/svg?seed=V&backgroundColor=00a3ff'} 
+                      alt="Profile" 
+                      className="w-28 h-28 rounded-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                    />
+                    <label className="absolute bottom-0 right-0 bg-[#00a3ff] text-white p-2 rounded-full cursor-pointer hover:bg-[#0088cc] transition-colors">
+                      <Camera size={18} />
+                      <input type="file" accept="image/*" className="hidden" />
+                    </label>
+                  </div>
+                  <p className="text-xs text-slate-500 text-center">Click photo to change</p>
+                </div>
+
+                {/* Name Field */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-slate-900 mb-2">Name</label>
+                  <input 
+                    type="text"
+                    value={profileName}
+                    onChange={(e) => setProfileName(e.target.value)}
+                    placeholder="Enter your name"
+                    className="w-full px-4 py-3 bg-slate-100 border border-transparent rounded-lg text-sm focus:outline-none focus:bg-white focus:border focus:border-[#00a3ff] transition-all"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">{profileName.length} / 50</p>
+                </div>
+
+                {/* About/Bio Field */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-slate-900 mb-2">About</label>
+                  <textarea 
+                    value={profileAbout}
+                    onChange={(e) => setProfileAbout(e.target.value.slice(0, 139))}
+                    placeholder="Add a bio or status..."
+                    className="w-full px-4 py-3 bg-slate-100 border border-transparent rounded-lg text-sm focus:outline-none focus:bg-white focus:border focus:border-[#00a3ff] transition-all resize-none"
+                    rows={4}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">{profileAbout.length} / 139</p>
+                </div>
+
+                {/* Save Button */}
+                <button 
+                  onClick={() => setShowProfileEdit(false)}
+                  className="w-full px-4 py-3 bg-[#00a3ff] text-white rounded-lg hover:bg-[#0088cc] transition-colors font-semibold text-sm"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
       
