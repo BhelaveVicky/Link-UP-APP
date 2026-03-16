@@ -250,6 +250,7 @@ export default function App() {
   const [userFriends, setUserFriends] = useState<any[]>([]);
   const [showMeetings, setShowMeetings] = useState(false);
   const [showCalls, setShowCalls] = useState(false);
+  const [showSidebarUsers, setShowSidebarUsers] = useState(false);
 
   function openUserChat(u: any) {
     const chat: Chat = {
@@ -371,6 +372,9 @@ export default function App() {
         status: 'accepted',
         createdAt: serverTimestamp()
       });
+
+      // Remove from pending friend requests
+      setFriendRequests(friendRequests.filter(req => req.id !== requestId));
       
       console.log('Friend request accepted');
     } catch (err) {
@@ -709,15 +713,15 @@ export default function App() {
       {/* Sidebar */}
       <aside className="w-[72px] flex flex-col items-center py-4 border-r border-slate-200 bg-white relative z-[60]">
         <div className="mb-6 p-2.5 rounded-xl bg-[#00a3ff] text-white cursor-pointer shadow-sm">
-          <MessageSquare size={24} onClick={() => {setShowStatusScreen(false); setShowMeetings(false); setShowCalls(false);}} />
+          <MessageSquare size={24} onClick={() => {setShowStatusScreen(false); setShowMeetings(false); setShowCalls(false); setShowSidebarUsers(false);}} />
         </div>
         <nav className="flex flex-col gap-6 text-slate-400">
           <div className="relative">
             <Target size={24} className="cursor-pointer hover:text-slate-600" onClick={() => setShowStatusScreen(true)} />
           </div>
-          <Calendar size={24} className="cursor-pointer hover:text-slate-600" onClick={() => {setShowMeetings(true); setShowStatusScreen(false); setShowCalls(false);}} />
-          <Phone size={24} className="cursor-pointer hover:text-slate-600" onClick={() => {setShowCalls(true); setShowStatusScreen(false); setShowMeetings(false);}} />
-          <Users size={20} className="cursor-pointer hover:text-slate-600" />
+          <Calendar size={24} className="cursor-pointer hover:text-slate-600" onClick={() => {setShowMeetings(true); setShowStatusScreen(false); setShowCalls(false); setShowSidebarUsers(false);}} />
+          <Phone size={24} className="cursor-pointer hover:text-slate-600" onClick={() => {setShowCalls(true); setShowStatusScreen(false); setShowMeetings(false); setShowSidebarUsers(false);}} />
+          <Users size={20} className="cursor-pointer hover:text-slate-600" onClick={() => {setShowSidebarUsers(true); setShowStatusScreen(false); setShowMeetings(false); setShowCalls(false);}} />
         </nav>
         <div className="mt-auto flex flex-col gap-6 items-center pb-4 relative">
           <Settings size={24} className="text-slate-400 cursor-pointer hover:text-slate-600" onClick={() => setShowProfileInterface(true)} />
@@ -1127,6 +1131,75 @@ export default function App() {
         </main>
       )}
 
+      {/* Users/Friends View */}
+      {showSidebarUsers && (
+        <main className="absolute top-0 left-[72px] right-0 bottom-0 flex flex-col bg-[#fbf9f7] z-50">
+          {/* Users Header */}
+          <header className="h-16 px-8 flex items-center bg-white justify-between">
+            <h1 className="text-xl font-semibold text-slate-900">Friends</h1>
+            <button onClick={() => setShowSidebarUsers(false)} className="p-1 hover:bg-slate-100 rounded">
+              <X size={20} className="text-slate-700" />
+            </button>
+          </header>
+
+          {/* Users Content */}
+          <div className="flex-1 flex">
+            {/* Left Side - Friends List */}
+            <div className="w-[450px] flex flex-col border-r border-slate-200 bg-white">
+              {/* Search Bar */}
+              <div className="p-4 border-b border-slate-200">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input 
+                    type="text" 
+                    placeholder="Search friends"
+                    className="w-full pl-9 pr-4 py-2 bg-[#f0f2f5] rounded-lg text-sm focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Friends List */}
+              <div className="flex-1 overflow-y-auto scrollbar-hide">
+                {userFriends.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-8 text-center">
+                    <Users size={40} className="text-slate-400 mb-4" />
+                    <h3 className="text-slate-900 font-semibold mb-2">No friends yet</h3>
+                    <p className="text-slate-500 text-sm">Accept friend requests to add them to your friends list</p>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {userFriends.map((friend) => (
+                      <div key={friend.id} className="p-4 flex items-center gap-3 hover:bg-slate-50 cursor-pointer transition-colors">
+                        <img 
+                          src={friend.photoURL || `https://i.pravatar.cc/150?u=${friend.id}`} 
+                          alt={friend.displayName || friend.email} 
+                          className="w-12 h-12 rounded-full object-cover"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-slate-900 truncate">{friend.displayName || friend.email}</div>
+                          <div className="text-sm text-slate-500">Online</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Side - Friend Details */}
+            <div className="flex-1 flex flex-col items-center justify-center bg-transparent relative p-8">
+              <div className="text-center max-w-md">
+                <div className="w-24 h-24 mx-auto mb-6 flex items-center justify-center bg-[#f0f2f5] rounded-full">
+                  <Users size={50} className="text-slate-400" />
+                </div>
+                <h2 className="text-2xl font-semibold text-slate-900 mb-4">Friends</h2>
+                <p className="text-slate-600">Select a friend to see their profile</p>
+              </div>
+            </div>
+          </div>
+        </main>
+      )}
+
       {/* Main Chat Area */}
       {showStatusScreen && (
         <main className="absolute top-0 left-[72px] right-0 bottom-0 flex flex-col bg-[#fbf9f7] z-50">
@@ -1230,7 +1303,7 @@ export default function App() {
         </main>
       )}
       
-      {!showStatusScreen && !showMeetings && !showCalls && (
+      {!showStatusScreen && !showMeetings && !showCalls && !showSidebarUsers && (
       <main className={`flex-1 flex flex-col bg-[#f0f2f5] ${showNewChatModal ? 'opacity-50 pointer-events-none' : ''}`}>
         {activeChat ? (
           <>
