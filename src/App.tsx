@@ -199,7 +199,7 @@ const INITIAL_MESSAGES: Message[] = [
     }
     , isMe: false
   },
-  {
+  { 
     id: '4',
     sender: 'Throw Zestober',
     avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=TZ',
@@ -226,10 +226,11 @@ const INITIAL_MESSAGES: Message[] = [
 ];
 
 export default function App() {
-  const [activeChat, setActiveChat] = useState<Chat>(MOCK_CHATS[4]); // ~ Miraculine
+  const [activeChat, setActiveChat] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [user, setUser] = useState<any | null>(null);
   const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
+  const [usersLoaded, setUsersLoaded] = useState(false);
   const [dotsImage, setDotsImage] = useState('default');
   const [showProfileInterface, setShowProfileInterface] = useState(false);
   const [showDotsMenu, setShowDotsMenu] = useState(false);
@@ -474,10 +475,32 @@ export default function App() {
   useEffect(() => {
     // Remove orderBy to avoid index requirement issues
     const usersRef = collection(db, 'users');
+    setUsersLoaded(false);
     const unsub = onSnapshot(usersRef, (snap) => {
-      const list = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
-      console.log('Users snapshot received', list);
-      setOnlineUsers(list);
+      const raw = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+      // coalesce users by normalized email (fallback to id) so the same person
+      // signed in with multiple uids doesn't appear multiple times
+      const byKey: Record<string, any> = {};
+      raw.forEach(u => {
+        const email = (u.email || '').toString().trim().toLowerCase();
+        const key = email || u.id;
+        if (!byKey[key]) {
+          // normalize id to email when available so keys in lists are stable
+          byKey[key] = { ...u, id: email || u.id };
+        } else {
+          // merge: prefer the entry with latest lastSeen timestamp if present
+          const existing = byKey[key];
+          const aTs = existing.lastSeen && existing.lastSeen.seconds ? existing.lastSeen.seconds : 0;
+          const bTs = u.lastSeen && u.lastSeen.seconds ? u.lastSeen.seconds : 0;
+          if (bTs > aTs) {
+            byKey[key] = { ...existing, ...u, id: email || u.id };
+          }
+        }
+      });
+      const unique = Object.values(byKey);
+      console.log('Users snapshot received', unique);
+      setOnlineUsers(unique);
+      setUsersLoaded(true);
     }, (error) => {
       console.error('Error fetching users:', error);
     });
@@ -507,38 +530,71 @@ export default function App() {
     );
     const unsub = onSnapshot(q, (snap) => {
       const friendships = snap.docs.map(d => d.data() as any);
-      const friendIds = friendships.map(f => f.participants.find((p: string) => p !== user.uid));
+      let friendIds = friendships.map(f => f.participants.find((p: string) => p !== user.uid));
+      // dedupe friend ids
+      friendIds = Array.from(new Set(friendIds.filter(Boolean)));
       // Get full user data for friends
       const friendsPromise = Promise.all(
-        friendIds.map(fid => 
+        friendIds.map(fid =>
           getDocs(query(collection(db, 'users'), where('__name__', '==', fid)))
-            .then(snap => snap.docs[0]?.data())
+            .then(snap => {
+              const d = snap.docs[0];
+              if (!d) return null;
+              return { id: d.id, ...(d.data() as any) };
+            })
         )
       );
       friendsPromise.then(friends => {
-        setUserFriends(friends.filter(Boolean));
+        const list = friends.filter(Boolean) as any[];
+        // final dedupe by id
+        const seen: Record<string, boolean> = {};
+        const unique = list.filter(u => {
+          const id = u.id || u.uid || u.email || JSON.stringify(u);
+          if (seen[id]) return false;
+          seen[id] = true;
+          return true;
+        });
+        setUserFriends(unique);
       });
     });
     return () => unsub();
   }, [user]);
 
   // If the app was opened with ?users=1 or ?profile=<uid>, render a full-screen users/profile page
-  const filteredUsers = onlineUsers.filter(u => {
+  const filteredUsers = (() => {
     const q = usersSearch.trim().toLowerCase();
-    if (!q) return true;
-    const name = (u.displayName || '').toLowerCase();
-    const email = (u.email || '').toLowerCase();
-    return name.includes(q) || email.includes(q);
-  });
+    const list = onlineUsers.filter(u => {
+      if (!q) return true;
+      const name = (u.displayName || '').toLowerCase();
+      const email = (u.email || '').toLowerCase();
+      return name.includes(q) || email.includes(q);
+    });
+    const seen: Record<string, boolean> = {};
+    return list.filter(u => {
+      const id = u.id || u.uid || u.email || JSON.stringify(u);
+      if (seen[id]) return false;
+      seen[id] = true;
+      return true;
+    });
+  })();
 
   // Users filtered for the New Chat modal (uses its own search input)
-  const newChatFilteredUsers = onlineUsers.filter(u => {
+  const newChatFilteredUsers = (() => {
     const q = newChatSearch.trim().toLowerCase();
-    if (!q) return true;
-    const name = (u.displayName || '').toLowerCase();
-    const email = (u.email || '').toLowerCase();
-    return name.includes(q) || email.includes(q);
-  });
+    const list = onlineUsers.filter(u => {
+      if (!q) return true;
+      const name = (u.displayName || '').toLowerCase();
+      const email = (u.email || '').toLowerCase();
+      return name.includes(q) || email.includes(q);
+    });
+    const seen: Record<string, boolean> = {};
+    return list.filter(u => {
+      const id = u.id || u.uid || u.email || JSON.stringify(u);
+      if (seen[id]) return false;
+      seen[id] = true;
+      return true;
+    });
+  })();
 
   if (showAllUsersPage) {
     return (
@@ -559,7 +615,9 @@ export default function App() {
                 className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none"
               />
             </div>
-            {onlineUsers.length === 0 ? (
+            {!usersLoaded ? (
+              <div className="text-sm text-slate-500">Loading users...</div>
+            ) : onlineUsers.length === 0 ? (
               <div className="text-sm text-slate-500">No users yet</div>
             ) : (
               <div className="grid grid-cols-1 gap-2">
@@ -818,7 +876,9 @@ export default function App() {
                   />
                 </div>
                 <div className="max-h-64 overflow-y-auto scrollbar-hide">
-                  {onlineUsers.length === 0 ? (
+                  {!usersLoaded ? (
+                    <div className="p-3 text-sm text-slate-500">Loading users...</div>
+                  ) : onlineUsers.length === 0 ? (
                     <div className="p-3 text-sm text-slate-500">No users yet</div>
                   ) : filteredUsers.length === 0 ? (
                     <div className="p-3 text-sm text-slate-500">No matching users</div>
@@ -888,7 +948,7 @@ export default function App() {
                 onClick={() => openUserChat(friend)}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-slate-50",
-                  activeChat.id === friend.id ? "bg-[#e1f3ff]" : "hover:bg-slate-50"
+                  activeChat?.id === friend.id ? "bg-[#e1f3ff]" : "hover:bg-slate-50"
                 )}
               >
                 <img 
@@ -917,7 +977,7 @@ export default function App() {
                 onClick={() => setActiveChat(chat)}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-slate-50",
-                  activeChat.id === chat.id ? "bg-[#e1f3ff]" : "hover:bg-slate-50"
+                  activeChat?.id === chat.id ? "bg-[#e1f3ff]" : "hover:bg-slate-50"
                 )}
               >
                 <img 
@@ -1055,157 +1115,214 @@ export default function App() {
       
       {!showStatusScreen && (
       <main className={`flex-1 flex flex-col bg-[#f0f2f5] ${showNewChatModal ? 'opacity-50 pointer-events-none' : ''}`}>
-        {/* Header */}
-        <header className="h-16 px-4 flex items-center justify-between bg-white border-b border-slate-200">
-          <div className="flex items-center gap-3">
-            <img 
-              src={activeChat.avatar} 
-              alt={activeChat.name} 
-              className="w-10 h-10 rounded-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-            <div>
-              <div className="flex items-center gap-1">
-                <h2 className="font-bold text-[15px] leading-tight">{activeChat.name}</h2>
-                {activeChat.isVerified && <ShieldCheck size={14} className="text-[#4caf50]" />}
-                {activeChat.isOfficial && <ShieldCheck size={14} className="text-[#ff9800]" />}
+        {activeChat ? (
+          <>
+            {/* Header */}
+            <header className="h-16 px-4 flex items-center justify-between bg-white border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <img 
+                  src={activeChat.avatar} 
+                  alt={activeChat.name} 
+                  className="w-10 h-10 rounded-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+                <div>
+                  <div className="flex items-center gap-1">
+                    <h2 className="font-bold text-[15px] leading-tight">{activeChat.name}</h2>
+                    {activeChat.isVerified && <ShieldCheck size={14} className="text-[#4caf50]" />}
+                    {activeChat.isOfficial && <ShieldCheck size={14} className="text-[#ff9800]" />}
+                  </div>
+                  <span className="text-[12px] text-slate-500">{activeChat.participants || ''}</span>
+                </div>
               </div>
-              <span className="text-[12px] text-slate-500">{activeChat.participants || ''}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-8 pr-6">
-            <Video size={24} className="text-black cursor-pointer hover:text-gray-700" />
-            <Phone size={24} className="text-black cursor-pointer hover:text-gray-700 ml-2" />
-            <div className="h-8 w-px bg-gray-400 mx-4" />
-            <Search size={24} className="text-black cursor-pointer hover:text-gray-700" />
-            <div className="relative chat-dropdown-container">
-              <button 
-                onClick={() => setShowChatDropdown(!showChatDropdown)}
-                className="p-1 rounded-full hover:bg-slate-100 transition-colors"
-              >
-                <MoreHorizontal size={24} className="text-black cursor-pointer hover:text-gray-700" />
-              </button>
-              
-              {showChatDropdown && (
-                <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border z-50 chat-dropdown-menu bg-white border-slate-200">
-                  <button
-                    onClick={deleteChat}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors text-slate-900"
+              <div className="flex items-center gap-8 pr-6">
+                <Video size={24} className="text-black cursor-pointer hover:text-gray-700" />
+                <Phone size={24} className="text-black cursor-pointer hover:text-gray-700 ml-2" />
+                <div className="h-8 w-px bg-gray-400 mx-4" />
+                <Search size={24} className="text-black cursor-pointer hover:text-gray-700" />
+                <div className="relative chat-dropdown-container">
+                  <button 
+                    onClick={() => setShowChatDropdown(!showChatDropdown)}
+                    className="p-1 rounded-full hover:bg-slate-100 transition-colors"
                   >
-                    <Trash2 size={16} className="text-red-500" />
-                    <span className="text-sm">Clear Chat</span>
+                    <MoreHorizontal size={24} className="text-black cursor-pointer hover:text-gray-700" />
                   </button>
                   
-                  <div className="border-t border-slate-200" />
+                  {showChatDropdown && (
+                    <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border z-50 chat-dropdown-menu bg-white border-slate-200">
+                      <button
+                        onClick={deleteChat}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors text-slate-900"
+                      >
+                        <Trash2 size={16} className="text-red-500" />
+                        <span className="text-sm">Clear Chat</span>
+                      </button>
+                      
+                      <div className="border-t border-slate-200" />
+                      
+                      <button
+                        onClick={toggleBlockUser}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors text-slate-900"
+                      >
+                        <UserX size={16} className={isUserBlocked ? 'text-red-500' : 'text-orange-500'} />
+                        <span className="text-sm">{isUserBlocked ? 'Unblock User' : 'Block User'}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </header>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 scrollbar-hide items-center justify-end pb-8">
+              {isUserBlocked && (
+                <div className="w-full max-w-2xl">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg text-[13px] border border-red-200">
+                    <UserX size={14} />
+                    <span>You have blocked this user. You cannot send or receive messages.</span>
+                  </div>
+                </div>
+              )}
+              {messages.length === 0 ? (
+                <div className="flex flex-col gap-3 items-center w-full max-w-2xl">
+                  <div className="flex items-center gap-2 px-4 py-1.5 bg-[#e8f5e9] text-[#2e7d32] rounded-lg text-[13px] border border-[#c8e6c9]">
+                    <ShieldCheck size={14} />
+                    <span>Messages and calls in this chat are now protected with end-to-end encryption.</span>
+                  </div>
+                  <div className="px-4 py-1.5 bg-white text-slate-500 rounded-lg text-[13px] border border-slate-100 shadow-sm">
+                    Previous messages are currently unavailable as this device has been added recently.
+                  </div>
+                </div>
+              ) : (
+                messages.map((msg) => (
+                  <div key={msg.id} className={cn("flex gap-2 w-full", msg.isMe ? "flex-row-reverse" : "flex-row")}>
+                    {!msg.isMe && (
+                      <img 
+                        src={msg.avatar} 
+                        alt={msg.sender} 
+                        className="w-8 h-8 rounded-full object-cover mt-1"
+                        referrerPolicy="no-referrer"
+                      />
+                    )}
+                    <div className={cn("flex flex-col", msg.isMe ? "items-end" : "items-start")}>
+                      {!msg.isMe && <span className="text-[12px] font-semibold text-slate-600 mb-1 ml-1">{msg.sender}</span>}
+                      <div className={cn(
+                        "px-3 py-2 rounded-xl shadow-sm max-w-[500px]",
+                        msg.isMe ? "bg-[#00a3ff] text-white" : "bg-white text-slate-800"
+                      )}>
+                        {msg.quote && (
+                          <div className="mb-2 p-2 bg-slate-50 rounded-lg border-l-4 border-[#00a3ff] text-[13px]">
+                            <div className="font-bold text-[#00a3ff] mb-0.5">{msg.quote.sender}</div>
+                            <div className="text-slate-600 truncate">{msg.quote.text}</div>
+                          </div>
+                        )}
+                        <p className="text-[14px] leading-relaxed">{msg.text}</p>
+                        <div className="flex justify-end mt-1">
+                          <span className={cn("text-[10px]", msg.isMe ? "text-sky-100" : "text-slate-400")}>{msg.time}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Chat Input Section */}
+            <div className="px-4 py-3 border-t border-slate-200 bg-white">
+              {isUserBlocked ? (
+                <div className="flex items-center justify-center py-2">
+                  <span className="text-red-500 text-sm">You cannot send messages to this user</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  {/* Emoji Button */}
+                  <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                    <Smile size={24} className="text-black" />
+                  </button>
                   
-                  <button
-                    onClick={toggleBlockUser}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors text-slate-900"
-                  >
-                    <UserX size={16} className={isUserBlocked ? 'text-red-500' : 'text-orange-500'} />
-                    <span className="text-sm">{isUserBlocked ? 'Unblock User' : 'Block User'}</span>
+                  {/* Attach Button */}
+                  <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                    <Paperclip size={24} className="text-black" />
+                  </button>
+                  
+                  {/* Text Input */}
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={inputMessage}
+                      onChange={(e) => setInputMessage(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                      placeholder="Type a message..."
+                      className="w-full px-4 py-2.5 bg-[#f0f2f5] rounded-[25px] text-sm focus:outline-none focus:bg-white focus:border-slate-300 border border-transparent transition-all"
+                    />
+                  </div>
+                  
+                  {/* Microphone Button - Dynamic */}
+                  <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                    {inputMessage.trim() === '' ? (
+                      <Mic size={24} className="text-black" />
+                    ) : (
+                      <Send size={24} className="text-black" onClick={sendMessage} />
+                    )}
                   </button>
                 </div>
               )}
             </div>
-          </div>
-        </header>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 scrollbar-hide items-center justify-end pb-8">
-          {isUserBlocked && (
-            <div className="w-full max-w-2xl">
-              <div className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg text-[13px] border border-red-200">
-                <UserX size={14} />
-                <span>You have blocked this user. You cannot send or receive messages.</span>
+          </>
+        ) : (
+          // Empty state when no chat is selected
+          <div className="flex-1 flex flex-col items-center justify-center bg-white">
+            <div className="text-center max-w-md">
+              <div className="w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                  <circle cx="36" cy="36" r="12" fill="#EFEFEF" />
+                  <circle cx="36" cy="36" r="22" stroke="#D6D6D6" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="36 18" />
+                  <circle cx="36" cy="36" r="28" stroke="#EEEEEE" strokeWidth="2" fill="none" opacity="0.6" />
+                </svg>
               </div>
-            </div>
-          )}
-          {messages.length === 0 ? (
-            <div className="flex flex-col gap-3 items-center w-full max-w-2xl">
-              <div className="flex items-center gap-2 px-4 py-1.5 bg-[#e8f5e9] text-[#2e7d32] rounded-lg text-[13px] border border-[#c8e6c9]">
-                <ShieldCheck size={14} />
-                <span>Messages and calls in this chat are now protected with end-to-end encryption.</span>
-              </div>
-              <div className="px-4 py-1.5 bg-white text-slate-500 rounded-lg text-[13px] border border-slate-100 shadow-sm">
-                Previous messages are currently unavailable as this device has been added recently.
-              </div>
-            </div>
-          ) : (
-            messages.map((msg) => (
-              <div key={msg.id} className={cn("flex gap-2 w-full", msg.isMe ? "flex-row-reverse" : "flex-row")}>
-                {!msg.isMe && (
-                  <img 
-                    src={msg.avatar} 
-                    alt={msg.sender} 
-                    className="w-8 h-8 rounded-full object-cover mt-1"
-                    referrerPolicy="no-referrer"
-                  />
-                )}
-                <div className={cn("flex flex-col", msg.isMe ? "items-end" : "items-start")}>
-                  {!msg.isMe && <span className="text-[12px] font-semibold text-slate-600 mb-1 ml-1">{msg.sender}</span>}
-                  <div className={cn(
-                    "px-3 py-2 rounded-xl shadow-sm max-w-[500px]",
-                    msg.isMe ? "bg-[#00a3ff] text-white" : "bg-white text-slate-800"
-                  )}>
-                    {msg.quote && (
-                      <div className="mb-2 p-2 bg-slate-50 rounded-lg border-l-4 border-[#00a3ff] text-[13px]">
-                        <div className="font-bold text-[#00a3ff] mb-0.5">{msg.quote.sender}</div>
-                        <div className="text-slate-600 truncate">{msg.quote.text}</div>
-                      </div>
-                    )}
-                    <p className="text-[14px] leading-relaxed">{msg.text}</p>
-                    <div className="flex justify-end mt-1">
-                      <span className={cn("text-[10px]", msg.isMe ? "text-sky-100" : "text-slate-400")}>{msg.time}</span>
-                    </div>
+              <h2 className="text-2xl font-semibold text-slate-900 mb-2">Send documents</h2>
+              <p className="text-slate-600 mb-8">Select a chat to get started.</p>
+              
+              <div className="flex gap-4 justify-center mb-8">
+                <button className="flex flex-col items-center gap-2 px-6 py-3 hover:bg-slate-50 rounded-lg transition-colors">
+                  <div className="w-12 h-12 bg-[#00a3ff] rounded-full flex items-center justify-center">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                      <polyline points="13 2 13 9 20 9"></polyline>
+                    </svg>
                   </div>
-                </div>
+                  <span className="text-sm font-medium text-slate-900">Send document</span>
+                </button>
+                
+                <button className="flex flex-col items-center gap-2 px-6 py-3 hover:bg-slate-50 rounded-lg transition-colors">
+                  <div className="w-12 h-12 bg-[#00a3ff] rounded-full flex items-center justify-center">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                  </div>
+                  <span className="text-sm font-medium text-slate-900">Add contact</span>
+                </button>
+                
+                <button className="flex flex-col items-center gap-2 px-6 py-3 hover:bg-slate-50 rounded-lg transition-colors">
+                  <div className="w-12 h-12 bg-[#00a3ff] rounded-full flex items-center justify-center">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 3v18"></path>
+                      <path d="M3 12h18"></path>
+                    </svg>
+                  </div>
+                  <span className="text-sm font-medium text-slate-900">Ask Meta AI</span>
+                </button>
               </div>
-            ))
-          )}
-        </div>
-
-        {/* Chat Input Section */}
-        <div className="px-4 py-3 border-t border-slate-200 bg-white">
-          {isUserBlocked ? (
-            <div className="flex items-center justify-center py-2">
-              <span className="text-red-500 text-sm">You cannot send messages to this user</span>
             </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              {/* Emoji Button */}
-              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                <Smile size={24} className="text-black" />
-              </button>
-              
-              {/* Attach Button */}
-              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                <Paperclip size={24} className="text-black" />
-              </button>
-              
-              {/* Text Input */}
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                  placeholder="Type a message..."
-                  className="w-full px-4 py-2.5 bg-[#f0f2f5] rounded-[25px] text-sm focus:outline-none focus:bg-white focus:border-slate-300 border border-transparent transition-all"
-                />
+            <div className="absolute bottom-8 left-0 right-0 flex items-center justify-center">
+              <div className="text-xs text-slate-400 flex items-center gap-2">
+                <Lock size={14} className="text-slate-400" />
+                <span>Your messages are end-to-end encrypted</span>
               </div>
-              
-              {/* Microphone Button - Dynamic */}
-              <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                {inputMessage.trim() === '' ? (
-                  <Mic size={24} className="text-black" />
-                ) : (
-                  <Send size={24} className="text-black" onClick={sendMessage} />
-                )}
-              </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </main>
       )}
       
@@ -1495,7 +1612,9 @@ export default function App() {
                   className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none"
                 />
               </div>
-              {onlineUsers.length === 0 ? (
+              {!usersLoaded ? (
+                <div className="text-sm text-slate-500">Loading users...</div>
+              ) : onlineUsers.length === 0 ? (
                 <div className="text-sm text-slate-500">No users yet</div>
               ) : filteredUsers.length === 0 ? (
                 <div className="text-sm text-slate-500">No matching users</div>
