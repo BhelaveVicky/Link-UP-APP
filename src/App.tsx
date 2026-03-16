@@ -18,6 +18,8 @@ import {
   Smile,
   Menu,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Sparkles,
   ShieldCheck,
   CheckCheck,
@@ -36,7 +38,9 @@ import {
   Key,
   Bell,
   Keyboard,
-  HelpCircle
+  HelpCircle,
+  Download,
+  Circle
 } from 'lucide-react';
 import { auth, db } from './firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -235,8 +239,21 @@ export default function App() {
   const [showProfileInterface, setShowProfileInterface] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [showAccountEdit, setShowAccountEdit] = useState(false);
+  const [showChatsEdit, setShowChatsEdit] = useState(false);
+  const [showNotificationsEdit, setShowNotificationsEdit] = useState(false);
+  const [selectedNotifSection, setSelectedNotifSection] = useState<string | null>(null);
+  const [appTheme, setAppTheme] = useState<'light' | 'dark'>('light');
+  const [chatWallpaper, setChatWallpaper] = useState('default');
   const [profileName, setProfileName] = useState(user?.displayName || '');
   const [profileAbout, setProfileAbout] = useState('');
+  const [notifBanner, setNotifBanner] = useState('Always');
+  const [notifBadge, setNotifBadge] = useState('Always');
+  const [notifMessages, setNotifMessages] = useState(true);
+  const [notifGroups, setNotifGroups] = useState(true);
+  const [notifStatus, setNotifStatus] = useState(true);
+  const [notifCalls, setNotifCalls] = useState(true);
+  const [showPreviews, setShowPreviews] = useState(true);
+  const [playSoundOutgoing, setPlaySoundOutgoing] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
   const [showUsers, setShowUsers] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -1671,7 +1688,9 @@ export default function App() {
                   </div>
                 </button>
                 
-                <button className="w-full flex items-center gap-3 py-4 hover:bg-slate-50 transition-colors rounded-lg">
+                <button 
+                  onClick={() => setShowAccountEdit(true)}
+                  className="w-full flex items-center gap-3 py-4 hover:bg-slate-50 transition-colors rounded-lg">
                   <div className="w-8 h-8 flex items-center justify-center text-slate-600 flex-shrink-0">
                     <Key size={20} />
                   </div>
@@ -1691,7 +1710,9 @@ export default function App() {
                   </div>
                 </button>
                 
-                <button className="w-full flex items-center gap-3 py-4 hover:bg-slate-50 transition-colors rounded-lg">
+                <button 
+                  onClick={() => setShowChatsEdit(true)}
+                  className="w-full flex items-center gap-3 py-4 hover:bg-slate-50 transition-colors rounded-lg">
                   <div className="w-8 h-8 flex items-center justify-center text-slate-600 flex-shrink-0">
                     <MessageSquare size={20} />
                   </div>
@@ -1701,7 +1722,9 @@ export default function App() {
                   </div>
                 </button>
                 
-                <button className="w-full flex items-center gap-3 py-4 hover:bg-slate-50 transition-colors rounded-lg bg-slate-50">
+                <button 
+                  onClick={() => setShowNotificationsEdit(true)}
+                  className="w-full flex items-center gap-3 py-4 hover:bg-slate-50 transition-colors rounded-lg bg-slate-50">
                   <div className="w-8 h-8 flex items-center justify-center text-slate-600 flex-shrink-0">
                     <Bell size={20} />
                   </div>
@@ -1830,6 +1853,471 @@ export default function App() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Account Edit Modal */}
+      {showAccountEdit && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Left Sidebar */}
+          <div className="w-16 bg-white border-r border-slate-200 flex flex-col items-center py-4 z-[70]">
+            <div className="w-10 h-10 rounded-full overflow-hidden mb-4">
+              <img src={user?.photoURL || 'https://api.dicebear.com/7.x/initials/svg?seed=V&backgroundColor=00a3ff'} alt="Profile" className="w-full h-full object-cover" />
+            </div>
+          </div>
+
+          {/* Account Edit Panel */}
+          <div className="w-[450px] bg-white flex flex-col">
+            {/* Header */}
+            <div className="p-4 flex items-center justify-between border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setShowAccountEdit(false)} className="p-1 hover:bg-slate-100 rounded">
+                  <X size={20} className="text-slate-700" />
+                </button>
+                <h2 className="text-lg font-semibold text-slate-900">Account</h2>
+              </div>
+            </div>
+
+            {/* Account Options */}
+            <div className="flex-1 overflow-y-auto scrollbar-hide">
+              <div className="px-6 py-6">
+                {/* Security Notifications Option */}
+                <button className="w-full flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors rounded-lg border border-slate-200 mb-4">
+                  <div className="w-12 h-12 flex items-center justify-center bg-blue-100 rounded-lg flex-shrink-0">
+                    <Bell size={24} className="text-[#00a3ff]" />
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <h3 className="text-base font-semibold text-slate-900">Security Notifications</h3>
+                    <p className="text-sm text-slate-500 mt-1">Manage your security alerts and notifications</p>
+                  </div>
+                </button>
+
+                {/* Request Account Info Option */}
+                <button className="w-full flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors rounded-lg border border-slate-200">
+                  <div className="w-12 h-12 flex items-center justify-center bg-green-100 rounded-lg flex-shrink-0">
+                    <Download size={24} className="text-[#00a884]" />
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <h3 className="text-base font-semibold text-slate-900">Request Account Info</h3>
+                    <p className="text-sm text-slate-500 mt-1">Download your account data and information</p>
+                  </div>
+                </button>
+
+                {/* Info Message */}
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-slate-700">Your account security and data privacy are important to us. You can manage your preferences and download your information anytime.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Chats Edit Modal */}
+      {showChatsEdit && (
+        <div className="fixed inset-0 z-50 flex">
+          {/* Left Sidebar */}
+          <div className="w-16 bg-white border-r border-slate-200 flex flex-col items-center py-4 z-[70]">
+            <div className="w-10 h-10 rounded-full overflow-hidden mb-4">
+              <img src={user?.photoURL || 'https://api.dicebear.com/7.x/initials/svg?seed=V&backgroundColor=00a3ff'} alt="Profile" className="w-full h-full object-cover" />
+            </div>
+          </div>
+
+          {/* Chats Edit Panel */}
+          <div className="w-[450px] bg-white flex flex-col">
+            {/* Header */}
+            <div className="p-4 flex items-center justify-between border-b border-slate-200">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setShowChatsEdit(false)} className="p-1 hover:bg-slate-100 rounded">
+                  <X size={20} className="text-slate-700" />
+                </button>
+                <h2 className="text-lg font-semibold text-slate-900">Chats</h2>
+              </div>
+            </div>
+
+            {/* Chats Customization Options */}
+            <div className="flex-1 overflow-y-auto scrollbar-hide">
+              <div className="px-6 py-6">
+                {/* Theme Selection */}
+                <div className="mb-8">
+                  <h3 className="text-base font-semibold text-slate-900 mb-4">Theme</h3>
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => setAppTheme('light')}
+                      className={`flex-1 p-4 rounded-lg border-2 transition-all ${
+                        appTheme === 'light'
+                          ? 'border-[#00a3ff] bg-blue-50'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="w-12 h-12 bg-white rounded-lg border border-slate-300 mx-auto mb-2"></div>
+                      <span className="text-sm font-medium text-slate-900">Light</span>
+                    </button>
+                    <button
+                      onClick={() => setAppTheme('dark')}
+                      className={`flex-1 p-4 rounded-lg border-2 transition-all ${
+                        appTheme === 'dark'
+                          ? 'border-[#00a3ff] bg-blue-50'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="w-12 h-12 bg-slate-800 rounded-lg mx-auto mb-2"></div>
+                      <span className="text-sm font-medium text-slate-900">Dark</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Wallpaper Selection */}
+                <div className="mb-8">
+                  <h3 className="text-base font-semibold text-slate-900 mb-4">Wallpaper</h3>
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    {[
+                      { id: 'default', name: 'Default', color: '#f8f9fa' },
+                      { id: 'blue', name: 'Blue', color: '#e3f2fd' },
+                      { id: 'green', name: 'Green', color: '#e8f5e9' },
+                      { id: 'purple', name: 'Purple', color: '#f3e5f5' },
+                      { id: 'orange', name: 'Orange', color: '#fff3e0' },
+                      { id: 'pink', name: 'Pink', color: '#fce4ec' }
+                    ].map((wp) => (
+                      <button
+                        key={wp.id}
+                        onClick={() => setChatWallpaper(wp.id)}
+                        className={`p-3 rounded-lg border-2 transition-all ${
+                          chatWallpaper === wp.id
+                            ? 'border-[#00a3ff]'
+                            : 'border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div
+                          className="w-full h-12 rounded mb-1"
+                          style={{ backgroundColor: wp.color }}
+                        ></div>
+                        <span className="text-xs text-slate-600">{name}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <label className="w-full flex items-center gap-3 p-3 border-2 border-dashed border-slate-300 rounded-lg hover:border-[#00a3ff] cursor-pointer transition-colors">
+                    <Camera size={20} className="text-slate-600" />
+                    <span className="text-sm text-slate-700">Upload custom wallpaper</span>
+                    <input type="file" accept="image/*" className="hidden" />
+                  </label>
+                </div>
+
+                {/* Chat History */}
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900 mb-4">Chat History</h3>
+                  <button className="w-full p-4 border-2 border-red-200 rounded-lg hover:bg-red-50 transition-colors text-left">
+                    <h4 className="text-sm font-semibold text-red-600">Clear Chat History</h4>
+                    <p className="text-xs text-red-500 mt-1">Delete all chat messages permanently</p>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications Edit Modal */}
+      {showNotificationsEdit && (
+        <div className="fixed inset-0 z-[70] flex">
+          <div className="w-[500px] bg-white border-r border-slate-200 overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-slate-200 p-4 flex items-center gap-3">
+              <button onClick={() => setShowNotificationsEdit(false)} className="text-slate-600 hover:text-slate-900">
+                <ChevronLeft size={24} />
+              </button>
+              <h2 className="text-lg font-semibold text-slate-900">Notifications</h2>
+            </div>
+
+            <div className="p-4 space-y-6">
+              {/* Show notification banner */}
+              <div className="border-b border-slate-200 pb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-base font-semibold text-slate-900">Show notification banner</h3>
+                  <ChevronRight size={20} className="text-slate-400" />
+                </div>
+                <p className="text-sm text-slate-500">{notifBanner}</p>
+              </div>
+
+              {/* Show taskbar notification badge */}
+              <div className="border-b border-slate-200 pb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-base font-semibold text-slate-900">Show taskbar notification badge</h3>
+                  <ChevronRight size={20} className="text-slate-400" />
+                </div>
+                <p className="text-sm text-slate-500">{notifBadge}</p>
+              </div>
+
+              {/* Messages */}
+              <div 
+                onClick={() => setSelectedNotifSection('messages')}
+                className={`cursor-pointer border-b border-slate-200 pb-4 transition-colors ${
+                  selectedNotifSection === 'messages' ? 'bg-blue-50' : ''
+                } p-2 -mx-2 rounded`}>
+                <div className="flex items-center gap-4 mb-2">
+                  <MessageSquare size={20} className="text-slate-600 flex-shrink-0" />
+                  <h3 className="text-base font-semibold text-slate-900">Messages</h3>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNotifMessages(!notifMessages);
+                    }}
+                    className={`ml-auto relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
+                      notifMessages ? 'bg-[#00a3ff]' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      notifMessages ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+                <p className="text-sm text-slate-500">{notifMessages ? 'On' : 'Off'}</p>
+              </div>
+
+              {/* Groups */}
+              <div 
+                onClick={() => setSelectedNotifSection('groups')}
+                className={`cursor-pointer border-b border-slate-200 pb-4 transition-colors ${
+                  selectedNotifSection === 'groups' ? 'bg-blue-50' : ''
+                } p-2 -mx-2 rounded`}>
+                <div className="flex items-center gap-4 mb-2">
+                  <Users size={20} className="text-slate-600 flex-shrink-0" />
+                  <h3 className="text-base font-semibold text-slate-900">Groups</h3>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNotifGroups(!notifGroups);
+                    }}
+                    className={`ml-auto relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
+                      notifGroups ? 'bg-[#00a3ff]' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      notifGroups ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+                <p className="text-sm text-slate-500">{notifGroups ? 'On' : 'Off'}</p>
+              </div>
+
+              {/* Status */}
+              <div 
+                onClick={() => setSelectedNotifSection('status')}
+                className={`cursor-pointer border-b border-slate-200 pb-4 transition-colors ${
+                  selectedNotifSection === 'status' ? 'bg-blue-50' : ''
+                } p-2 -mx-2 rounded`}>
+                <div className="flex items-center gap-4 mb-2">
+                  <Circle size={20} className="text-slate-600 flex-shrink-0" />
+                  <h3 className="text-base font-semibold text-slate-900">Status</h3>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNotifStatus(!notifStatus);
+                    }}
+                    className={`ml-auto relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
+                      notifStatus ? 'bg-[#00a3ff]' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      notifStatus ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+                <p className="text-sm text-slate-500">{notifStatus ? 'On' : 'Off'}</p>
+              </div>
+
+              {/* Calls */}
+              <div 
+                onClick={() => setSelectedNotifSection('calls')}
+                className={`cursor-pointer border-b border-slate-200 pb-4 transition-colors ${
+                  selectedNotifSection === 'calls' ? 'bg-blue-50' : ''
+                } p-2 -mx-2 rounded`}>
+                <div className="flex items-center gap-4 mb-2">
+                  <Phone size={20} className="text-slate-600 flex-shrink-0" />
+                  <h3 className="text-base font-semibold text-slate-900">Calls</h3>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setNotifCalls(!notifCalls);
+                    }}
+                    className={`ml-auto relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 ${
+                      notifCalls ? 'bg-[#00a3ff]' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      notifCalls ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+                <p className="text-sm text-slate-500">{notifCalls ? 'On' : 'Off'}</p>
+              </div>
+
+              {/* Show previews */}
+              <div className="border-b border-slate-200 pb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-base font-semibold text-slate-900">Show previews</h3>
+                  <button
+                    onClick={() => setShowPreviews(!showPreviews)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      showPreviews ? 'bg-green-500' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      showPreviews ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+                <p className="text-sm text-slate-600">Preview message text inside message notifications.</p>
+              </div>
+
+              {/* Play sound for outgoing messages */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-base font-semibold text-slate-900">Play sound for outgoing messages</h3>
+                  <button
+                    onClick={() => setPlaySoundOutgoing(!playSoundOutgoing)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      playSoundOutgoing ? 'bg-[#00a3ff]' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      playSoundOutgoing ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Panel - Show details based on selection */}
+          <div className="flex-1 bg-slate-50 flex flex-col overflow-y-auto">
+            {!selectedNotifSection ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <Bell size={48} className="text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500">Select an option to customize</p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6">
+                {selectedNotifSection === 'messages' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-3">
+                        <MessageSquare size={24} className="text-[#00a3ff]" />
+                        Messages Notifications
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="p-4 border-2 border-slate-200 rounded-lg">
+                          <h4 className="font-semibold text-slate-900 mb-2">Sound</h4>
+                          <select className="w-full p-2 border border-slate-300 rounded text-slate-900">
+                            <option>Default notification</option>
+                            <option>None</option>
+                            <option>Alert</option>
+                            <option>Chime</option>
+                          </select>
+                        </div>
+                        <div className="p-4 border-2 border-slate-200 rounded-lg">
+                          <h4 className="font-semibold text-slate-900 mb-2">Vibration</h4>
+                          <button className={`w-full text-left p-2 rounded ${notifMessages ? 'bg-blue-100 text-[#00a3ff]' : 'bg-slate-100'}`}>
+                            {notifMessages ? '✓ Enabled' : 'Disabled'}
+                          </button>
+                        </div>
+                        <div className="p-4 border-2 border-slate-200 rounded-lg">
+                          <h4 className="font-semibold text-slate-900 mb-2">Light</h4>
+                          <button className="w-full text-left p-2 rounded bg-slate-100">
+                            Default
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedNotifSection === 'groups' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-3">
+                        <Users size={24} className="text-[#00a3ff]" />
+                        Group Notifications
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="p-4 border-2 border-slate-200 rounded-lg">
+                          <h4 className="font-semibold text-slate-900 mb-2">Sound</h4>
+                          <select className="w-full p-2 border border-slate-300 rounded text-slate-900">
+                            <option>Default notification</option>
+                            <option>None</option>
+                            <option>Group Alert</option>
+                            <option>Bell</option>
+                          </select>
+                        </div>
+                        <div className="p-4 border-2 border-slate-200 rounded-lg">
+                          <h4 className="font-semibold text-slate-900 mb-2">Mute Notifications</h4>
+                          <button className="w-full text-left p-2 rounded bg-slate-100">
+                            Off
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedNotifSection === 'status' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-3">
+                        <Circle size={24} className="text-[#00a3ff]" />
+                        Status Notifications
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="p-4 border-2 border-slate-200 rounded-lg">
+                          <h4 className="font-semibold text-slate-900 mb-2">Show when contact updates</h4>
+                          <button className={`w-full text-left p-2 rounded ${notifStatus ? 'bg-blue-100 text-[#00a3ff]' : 'bg-slate-100'}`}>
+                            {notifStatus ? '✓ Enabled' : 'Disabled'}
+                          </button>
+                        </div>
+                        <div className="p-4 border-2 border-slate-200 rounded-lg">
+                          <h4 className="font-semibold text-slate-900 mb-2">Notify frequency</h4>
+                          <select className="w-full p-2 border border-slate-300 rounded text-slate-900">
+                            <option>Immediately</option>
+                            <option>Every 5 minutes</option>
+                            <option>Every hour</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedNotifSection === 'calls' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-3">
+                        <Phone size={24} className="text-[#00a3ff]" />
+                        Call Notifications
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="p-4 border-2 border-slate-200 rounded-lg">
+                          <h4 className="font-semibold text-slate-900 mb-2">Ringtone</h4>
+                          <select className="w-full p-2 border border-slate-300 rounded text-slate-900">
+                            <option>Phone (Default)</option>
+                            <option>Bell</option>
+                            <option>Alert</option>
+                            <option>None</option>
+                          </select>
+                        </div>
+                        <div className="p-4 border-2 border-slate-200 rounded-lg">
+                          <h4 className="font-semibold text-slate-900 mb-2">Vibration</h4>
+                          <button className={`w-full text-left p-2 rounded ${notifCalls ? 'bg-blue-100 text-[#00a3ff]' : 'bg-slate-100'}`}>
+                            {notifCalls ? '✓ Enabled' : 'Disabled'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
