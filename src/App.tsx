@@ -248,6 +248,7 @@ export default function App() {
   const [friendRequests, setFriendRequests] = useState<any[]>([]);
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [userFriends, setUserFriends] = useState<any[]>([]);
+  const [showMeetings, setShowMeetings] = useState(false);
 
   function openUserChat(u: any) {
     const chat: Chat = {
@@ -707,13 +708,13 @@ export default function App() {
       {/* Sidebar */}
       <aside className="w-[72px] flex flex-col items-center py-4 border-r border-slate-200 bg-white relative z-[60]">
         <div className="mb-6 p-2.5 rounded-xl bg-[#00a3ff] text-white cursor-pointer shadow-sm">
-          <MessageSquare size={24} onClick={() => setShowStatusScreen(false)} />
+          <MessageSquare size={24} onClick={() => {setShowStatusScreen(false); setShowMeetings(false);}} />
         </div>
         <nav className="flex flex-col gap-6 text-slate-400">
           <div className="relative">
             <Target size={24} className="cursor-pointer hover:text-slate-600" onClick={() => setShowStatusScreen(true)} />
           </div>
-          <Calendar size={24} className="cursor-pointer hover:text-slate-600" />
+          <Calendar size={24} className="cursor-pointer hover:text-slate-600" onClick={() => {setShowMeetings(true); setShowStatusScreen(false);}} />
           <Phone size={24} className="cursor-pointer hover:text-slate-600" />
           <Users size={20} className="cursor-pointer hover:text-slate-600" />
         </nav>
@@ -988,6 +989,90 @@ export default function App() {
         </div>
       </section>
 
+      {/* Meetings View */}
+      {showMeetings && (
+        <main className="absolute top-0 left-[72px] right-0 bottom-0 flex flex-col bg-[#fbf9f7] z-50">
+          {/* Meetings Header */}
+          <header className="h-16 px-8 flex items-center bg-white justify-between">
+            <h1 className="text-xl font-semibold text-slate-900">Meetings</h1>
+            <button onClick={() => setShowMeetings(false)} className="p-1 hover:bg-slate-100 rounded">
+              <X size={20} className="text-slate-700" />
+            </button>
+          </header>
+
+          {/* Meetings Content */}
+          <div className="flex-1 flex">
+            {/* Left Side - Meetings List */}
+            <div className="w-[450px] flex flex-col border-r border-slate-200 bg-white">
+              {/* Tabs */}
+              <div className="px-4 py-3 border-b border-slate-200 flex gap-6">
+                <button className="pb-2 font-semibold text-slate-900 border-b-2 border-[#00a3ff] text-sm">
+                  Upcoming
+                </button>
+                <button className="pb-2 text-slate-500 hover:text-slate-700 text-sm">
+                  Previous
+                </button>
+                <button className="pb-2 text-slate-500 hover:text-slate-700 text-sm">
+                  Recordings
+                </button>
+              </div>
+
+              {/* Search Bar */}
+              <div className="p-4 border-b border-slate-200">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input 
+                    type="text" 
+                    placeholder="Search meetings"
+                    className="w-full pl-9 pr-4 py-2 bg-[#f0f2f5] rounded-lg text-sm focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Empty State */}
+              <div className="flex-1 flex flex-col items-center justify-center p-8">
+                <div className="text-center">
+                  <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center bg-[#f0f2f5] rounded-full">
+                    <Calendar size={40} className="text-slate-400" />
+                  </div>
+                  <h3 className="text-slate-900 font-semibold mb-2">Organize, join and schedule your meetings in one place</h3>
+                  <p className="text-slate-500 text-sm">No upcoming meetings</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Side - Meeting Details */}
+            <div className="flex-1 flex flex-col items-center justify-center bg-transparent relative p-8">
+              <div className="text-center max-w-md">
+                <div className="w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                  <div className="text-[#00a3ff] text-7xl font-bold">V</div>
+                </div>
+                <h2 className="text-4xl font-bold text-slate-900 mb-2">Hello</h2>
+                <h3 className="text-2xl font-semibold text-slate-900 mb-4">Vicky Bhelave</h3>
+                <p className="text-slate-600 mb-8">Connect instantly or schedule a meeting for later</p>
+                
+                <div className="flex flex-col gap-4">
+                  <button className="flex items-center justify-center gap-3 px-6 py-4 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                    <Video size={20} className="text-[#00a3ff]" />
+                    <span className="font-medium text-slate-900">Meet now</span>
+                  </button>
+                  
+                  <button className="flex items-center justify-center gap-3 px-6 py-4 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                    <Calendar size={20} className="text-[#00a3ff]" />
+                    <span className="font-medium text-slate-900">Schedule meeting</span>
+                  </button>
+                  
+                  <button className="flex items-center justify-center gap-3 px-6 py-4 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                    <Phone size={20} className="text-[#00a3ff]" />
+                    <span className="font-medium text-slate-900">Join meeting</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      )}
+
       {/* Main Chat Area */}
       {showStatusScreen && (
         <main className="absolute top-0 left-[72px] right-0 bottom-0 flex flex-col bg-[#fbf9f7] z-50">
@@ -1091,7 +1176,7 @@ export default function App() {
         </main>
       )}
       
-      {!showStatusScreen && (
+      {!showStatusScreen && !showMeetings && (
       <main className={`flex-1 flex flex-col bg-[#f0f2f5] ${showNewChatModal ? 'opacity-50 pointer-events-none' : ''}`}>
         {activeChat ? (
           <>
