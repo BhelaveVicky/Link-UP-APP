@@ -249,6 +249,7 @@ export default function App() {
   const [showFriendRequests, setShowFriendRequests] = useState(false);
   const [userFriends, setUserFriends] = useState<any[]>([]);
   const [showMeetings, setShowMeetings] = useState(false);
+  const [showCalls, setShowCalls] = useState(false);
 
   function openUserChat(u: any) {
     const chat: Chat = {
@@ -708,14 +709,14 @@ export default function App() {
       {/* Sidebar */}
       <aside className="w-[72px] flex flex-col items-center py-4 border-r border-slate-200 bg-white relative z-[60]">
         <div className="mb-6 p-2.5 rounded-xl bg-[#00a3ff] text-white cursor-pointer shadow-sm">
-          <MessageSquare size={24} onClick={() => {setShowStatusScreen(false); setShowMeetings(false);}} />
+          <MessageSquare size={24} onClick={() => {setShowStatusScreen(false); setShowMeetings(false); setShowCalls(false);}} />
         </div>
         <nav className="flex flex-col gap-6 text-slate-400">
           <div className="relative">
             <Target size={24} className="cursor-pointer hover:text-slate-600" onClick={() => setShowStatusScreen(true)} />
           </div>
-          <Calendar size={24} className="cursor-pointer hover:text-slate-600" onClick={() => {setShowMeetings(true); setShowStatusScreen(false);}} />
-          <Phone size={24} className="cursor-pointer hover:text-slate-600" />
+          <Calendar size={24} className="cursor-pointer hover:text-slate-600" onClick={() => {setShowMeetings(true); setShowStatusScreen(false); setShowCalls(false);}} />
+          <Phone size={24} className="cursor-pointer hover:text-slate-600" onClick={() => {setShowCalls(true); setShowStatusScreen(false); setShowMeetings(false);}} />
           <Users size={20} className="cursor-pointer hover:text-slate-600" />
         </nav>
         <div className="mt-auto flex flex-col gap-6 items-center pb-4 relative">
@@ -1073,6 +1074,59 @@ export default function App() {
         </main>
       )}
 
+      {/* Calls View */}
+      {showCalls && (
+        <main className="absolute top-0 left-[72px] right-0 bottom-0 flex flex-col bg-[#fbf9f7] z-50">
+          {/* Calls Header */}
+          <header className="h-16 px-8 flex items-center bg-white justify-between">
+            <h1 className="text-xl font-semibold text-slate-900">Calls</h1>
+            <button onClick={() => setShowCalls(false)} className="p-1 hover:bg-slate-100 rounded">
+              <X size={20} className="text-slate-700" />
+            </button>
+          </header>
+
+          {/* Calls Content */}
+          <div className="flex-1 flex">
+            {/* Left Side - Calls List */}
+            <div className="w-[450px] flex flex-col border-r border-slate-200 bg-white">
+              {/* Search Bar */}
+              <div className="p-4 border-b border-slate-200">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                  <input 
+                    type="text" 
+                    placeholder="Search calls"
+                    className="w-full pl-9 pr-4 py-2 bg-[#f0f2f5] rounded-lg text-sm focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Empty State */}
+              <div className="flex-1 flex flex-col items-center justify-center p-8">
+                <div className="text-center">
+                  <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center bg-[#f0f2f5] rounded-full">
+                    <Phone size={40} className="text-slate-400" />
+                  </div>
+                  <h3 className="text-slate-900 font-semibold mb-2">No calls yet</h3>
+                  <p className="text-slate-500 text-sm">Your call activity will appear here</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Side - Call Details */}
+            <div className="flex-1 flex flex-col items-center justify-center bg-transparent relative p-8">
+              <div className="text-center max-w-md">
+                <div className="w-24 h-24 mx-auto mb-6 flex items-center justify-center bg-[#e3f2fd] rounded-full">
+                  <Phone size={50} className="text-[#00a3ff]" />
+                </div>
+                <h2 className="text-2xl font-semibold text-slate-900 mb-4">Calls</h2>
+                <p className="text-slate-600 mb-8">Your call activity will appear here.</p>
+              </div>
+            </div>
+          </div>
+        </main>
+      )}
+
       {/* Main Chat Area */}
       {showStatusScreen && (
         <main className="absolute top-0 left-[72px] right-0 bottom-0 flex flex-col bg-[#fbf9f7] z-50">
@@ -1176,7 +1230,7 @@ export default function App() {
         </main>
       )}
       
-      {!showStatusScreen && !showMeetings && (
+      {!showStatusScreen && !showMeetings && !showCalls && (
       <main className={`flex-1 flex flex-col bg-[#f0f2f5] ${showNewChatModal ? 'opacity-50 pointer-events-none' : ''}`}>
         {activeChat ? (
           <>
